@@ -26,7 +26,6 @@ The whole map, with what each piece honestly is not: [rishitank.co.uk/robustness
 ## Tooling I build for my own work with Claude Code
 
 - [`holocron`](https://github.com/rishitank/holocron) — local codebase intelligence for Claude Code
-- [`coolify-mcp-oauth`](https://github.com/rishitank/coolify-mcp-oauth) — self-hosted OAuth 2.1 authorisation server that turns a Coolify MCP server into a remote, multi-tenant MCP endpoint
 - [`animawatch`](https://github.com/rishitank/animawatch) — an MCP server that watches web animations like a human tester and reports jank
 - [`jdtls-claude-daemon`](https://github.com/rishitank/jdtls-claude-daemon) — persistent Java language-server daemon for Claude Code
 
