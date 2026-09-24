@@ -27,7 +27,7 @@ The whole map, with what each piece honestly is not: [rishitank.co.uk/robustness
 
 - [**PreviewProof**](https://preview-proof.lovable.app): paste a URL and see the Google, X, LinkedIn,
   Slack and WhatsApp previews it really produces, with a copy-paste fix for each problem. Built in
-  Lovable, then hardened through its GitHub sync: an SSRF-resistant fetcher, 241 unit and 30
+  Lovable, then hardened through its GitHub sync: an SSRF-resistant fetcher, 264 unit and 30
   browser tests, and Lighthouse budgets in CI.
   [`rishitank/preview-proof`](https://github.com/rishitank/preview-proof) ·
   [case study](https://rishitank.co.uk/projects/preview-proof)
