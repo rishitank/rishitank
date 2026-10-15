@@ -3,6 +3,7 @@
 // GitHub client is replaced by fakes that answer from fixtures.
 
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -106,6 +107,8 @@ test("parseInline rejects markup, off-site links and broken syntax outside code"
     "wow!",
     "a \\`b` c",
     "a \\[x](https://github.com/o/r)",
+    "[a (b)](https://github.com/o/r/issues/1)",
+    "[a)b](https://github.com/o/r/issues/1)",
   ];
   for (const s of bad) assert.throws(() => parseInline(s), undefined, JSON.stringify(s));
 });
@@ -288,6 +291,16 @@ test("checkLedgerInvariants stops an update changing whose list it is or droppin
   const errs = checkLedgerInvariants(base, head);
   for (const want of ["ledger.user", "ledger.excludeOwners", "o/r#2: removed"]) assert.ok(hasError(errs, want), want);
   assert.ok(!hasError(errs, "o/r#3"), "adding items is fine");
+});
+
+test("validate.mjs refuses --base-ledger without a file instead of skipping the check", () => {
+  const run = (...args) => spawnSync(process.execPath, [path.join(root, "scripts/oss/validate.mjs"), ...args], { encoding: "utf8" });
+  for (const args of [["--base-ledger"], ["--base-ledger", "--scan", "x"]]) {
+    const r = run(...args);
+    assert.equal(r.status, 2, args.join(" "));
+    assert.match(r.stderr, /--base-ledger needs a file path/);
+  }
+  assert.equal(run("--base-ledger", path.join(root, "data/open-source-ledger.json")).status, 0, "a real base ledger still passes");
 });
 
 test("validateLedger reports a null item instead of throwing", () => {
