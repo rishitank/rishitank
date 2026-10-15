@@ -13,27 +13,6 @@
       "decision": "excluded",
       "reason": "Docs were updated in PR #1996 but it does not reference the issue; link is only inferred, so left out."
     },
-    "alain-duranton-adthena/demo-project#23": {
-      "kind": "pr",
-      "state": "merged",
-      "updatedAt": "2020-11-11T09:23:36Z",
-      "decision": "excluded",
-      "reason": "Private training repo at a former employer, not open source."
-    },
-    "alain-duranton-adthena/demo-project#25": {
-      "kind": "pr",
-      "state": "merged",
-      "updatedAt": "2020-11-11T13:55:21Z",
-      "decision": "excluded",
-      "reason": "Private training repo at a former employer, not open source."
-    },
-    "alain-duranton-adthena/demo-project#7": {
-      "kind": "pr",
-      "state": "merged",
-      "updatedAt": "2020-11-11T14:51:57Z",
-      "decision": "excluded",
-      "reason": "Private training repo at a former employer, not open source."
-    },
     "amantus-ai/vibetunnel#526": {
       "kind": "issue",
       "state": "closed",
