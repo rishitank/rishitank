@@ -1,0 +1,189 @@
+{
+  "$comment": "Single source of truth for the Open source section of the GitHub profile README and the portfolio's About page. Edit here only: README.md is regenerated from this file (scripts/oss/render-readme.mjs) and the portfolio fetches it at runtime. Every entry carries machine-checkable evidence; CI re-checks each piece against the live GitHub API (scripts/oss/verify-claims.mjs). Rules for what qualifies, and how the sync works: docs/open-source.md.",
+  "heading": "Upstream issues, proposals and fixes, each backed by a linked issue or pull request:",
+  "entries": [
+    {
+      "id": "redoc",
+      "project": "Redoc",
+      "url": "https://github.com/Redocly/redoc/pull/2869",
+      "status": "merged",
+      "text": "built XML and CSV response examples for Adthena's API docs, first proposed in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later backed by another developer. CSV support is merged for the next release ([#2869](https://github.com/Redocly/redoc/pull/2869)); my XML fixes to openapi-sampler await review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))",
+      "evidence": [
+        { "type": "pr", "repo": "Redocly/redoc", "number": 2347, "author": "rishitank", "merged": false, "contains": "As part of implementing api-docs at Adthena" },
+        { "type": "comment", "repo": "Redocly/redoc", "number": 2347, "author": "LeWolOnline", "contains": "I'm experiencing the same issue it solves" },
+        { "type": "pr", "repo": "Redocly/redoc", "number": 2869, "author": "rishitank", "merged": true, "base": "main" },
+        { "type": "comment", "repo": "Redocly/redoc", "number": 2869, "author": "makare11a", "contains": "The changes will be available in the next release" },
+        { "type": "pr", "repo": "Redocly/openapi-sampler", "number": 223, "author": "rishitank", "state": "open" }
+      ],
+      "watch": [
+        { "type": "release-mentions", "repo": "Redocly/redoc", "contains": "#2869", "note": "When a release mentions #2869, the text can say which version shipped CSV." }
+      ]
+    },
+    {
+      "id": "claude-code-lsps",
+      "project": "claude-code-lsps",
+      "url": "https://github.com/Piebald-AI/claude-code-lsps/pull/73",
+      "status": "merged",
+      "text": "had a Java language-server (jdtls) reliability fix merged ([#73](https://github.com/Piebald-AI/claude-code-lsps/pull/73)); my request led to Scala (Metals) support ([#54](https://github.com/Piebald-AI/claude-code-lsps/issues/54)), and my diagnosis of why it would not load got it fixed ([#56](https://github.com/Piebald-AI/claude-code-lsps/issues/56))",
+      "evidence": [
+        { "type": "pr", "repo": "Piebald-AI/claude-code-lsps", "number": 73, "author": "rishitank", "merged": true },
+        { "type": "issue", "repo": "Piebald-AI/claude-code-lsps", "number": 54, "author": "rishitank" },
+        { "type": "comment", "repo": "Piebald-AI/claude-code-lsps", "number": 54, "author": "bl-ue", "contains": "I added [scalameta/metals]" },
+        { "type": "issue", "repo": "Piebald-AI/claude-code-lsps", "number": 56, "author": "rishitank" },
+        { "type": "comment", "repo": "Piebald-AI/claude-code-lsps", "number": 56, "author": "bl-ue", "contains": "Addressed in d132c3f" },
+        { "type": "commit", "repo": "Piebald-AI/claude-code-lsps", "sha": "d132c3f7e2eb584997bc48dd8dbdfaa206515b30", "contains": "Remove shutdownTimeout from metals" }
+      ]
+    },
+    {
+      "id": "copilot-cli",
+      "project": "GitHub Copilot CLI",
+      "url": "https://github.com/github/copilot-cli/issues/288",
+      "status": "shipped",
+      "text": "proposed repo-specific MCP configs, shipped as the repeatable `--additional-mcp-config` flag ([#288](https://github.com/github/copilot-cli/issues/288))",
+      "evidence": [
+        { "type": "issue", "repo": "github/copilot-cli", "number": 288, "author": "rishitank" },
+        { "type": "comment", "repo": "github/copilot-cli", "number": 288, "author": "ellismg", "contains": "I merged in a change to the CLI to add `--additional-mcp-config`" },
+        { "type": "release", "repo": "github/copilot-cli", "tag": "v0.0.343", "contains": "`--additional-mcp-config` (fixes https://github.com/github/copilot-cli/issues/288)" }
+      ]
+    },
+    {
+      "id": "mcp-typescript-sdk",
+      "project": "MCP TypeScript SDK",
+      "url": "https://github.com/modelcontextprotocol/typescript-sdk/issues/547",
+      "status": "credited",
+      "text": "my `docker run --init` workaround for orphaned MCP containers was credited by the maintainer when closing the issue ([#547](https://github.com/modelcontextprotocol/typescript-sdk/issues/547))",
+      "evidence": [
+        { "type": "comment", "repo": "modelcontextprotocol/typescript-sdk", "number": 547, "author": "rishitank", "contains": "passing the `--init` flag to the `docker run` command" },
+        { "type": "comment", "repo": "modelcontextprotocol/typescript-sdk", "number": 547, "author": "felixweinberger", "contains": "Closing as this seems resolved by the response from @rishitank" }
+      ]
+    },
+    {
+      "id": "vibetunnel",
+      "project": "VibeTunnel",
+      "url": "https://github.com/amantus-ai/vibetunnel/issues/526",
+      "status": "shipped",
+      "text": "requested Auggie CLI support, added in v1.0.0-beta.16 and credited to me in its release notes ([#526](https://github.com/amantus-ai/vibetunnel/issues/526), [#680](https://github.com/amantus-ai/vibetunnel/pull/680))",
+      "evidence": [
+        { "type": "issue", "repo": "amantus-ai/vibetunnel", "number": 526, "author": "rishitank" },
+        { "type": "pr-fixes-issue", "repo": "amantus-ai/vibetunnel", "number": 680, "issue": 526 },
+        { "type": "release", "repo": "amantus-ai/vibetunnel", "tag": "v1.0.0-beta.16", "contains": "(requested by [@rishitank](https://github.com/rishitank)) (#526)" }
+      ]
+    },
+    {
+      "id": "coolify-mcp",
+      "project": "coolify-mcp",
+      "url": "https://github.com/StuMason/coolify-mcp/issues/110",
+      "status": "shipped",
+      "text": "reported that updating an application's domain failed because the server sent `fqdn` where the Coolify API now expects `domains`; the owner closed it as fixed by a later pull request ([#110](https://github.com/StuMason/coolify-mcp/issues/110), [#125](https://github.com/StuMason/coolify-mcp/pull/125))",
+      "evidence": [
+        { "type": "issue", "repo": "StuMason/coolify-mcp", "number": 110, "author": "rishitank" },
+        { "type": "comment", "repo": "StuMason/coolify-mcp", "number": 110, "author": "StuMason", "contains": "is fixed by @terry90918 in https://github.com/StuMason/coolify-mcp/pull/125" },
+        { "type": "pr", "repo": "StuMason/coolify-mcp", "number": 125, "author": "terry90918", "merged": true }
+      ]
+    },
+    {
+      "id": "auggie",
+      "project": "Auggie CLI",
+      "url": "https://github.com/augmentcode/auggie/issues/28",
+      "status": "shipped",
+      "text": "reported a response-delay regression in v0.6.0 and tested the maintainers' prerelease fix, shipped as 0.6.1 ([#28](https://github.com/augmentcode/auggie/issues/28)); a maintainer said my request for native shell support should be fixed in the latest release ([#14](https://github.com/augmentcode/auggie/issues/14))",
+      "evidence": [
+        { "type": "issue", "repo": "augmentcode/auggie", "number": 28, "author": "rishitank" },
+        { "type": "comment", "repo": "augmentcode/auggie", "number": 28, "author": "rishitank", "contains": "it looks like the issue is fixed" },
+        { "type": "comment", "repo": "augmentcode/auggie", "number": 28, "author": "mtpauly", "contains": "I've just released 0.6.1 as a stable version" },
+        { "type": "issue", "repo": "augmentcode/auggie", "number": 14, "author": "rishitank" },
+        { "type": "comment", "repo": "augmentcode/auggie", "number": 14, "author": "justinxu421", "contains": "should be configurable and fixed in latest release" }
+      ]
+    },
+    {
+      "id": "dbcode",
+      "project": "DBCode",
+      "url": "https://github.com/dbcodeio/public/issues/613",
+      "status": "shipped",
+      "text": "requested Redshift Spectrum support, shipped in 1.14.24, then reported a regression in that release, fixed in 1.14.25 ([#613](https://github.com/dbcodeio/public/issues/613), [#644](https://github.com/dbcodeio/public/issues/644))",
+      "evidence": [
+        { "type": "issue", "repo": "dbcodeio/public", "number": 613, "author": "rishitank" },
+        { "type": "comment", "repo": "dbcodeio/public", "number": 613, "author": "mikeburgh", "contains": "This has been added to 1.14.24 which has been released" },
+        { "type": "issue", "repo": "dbcodeio/public", "number": 644, "author": "rishitank", "contains": "After updating to the latest DBCode VSCode extension 1.14.24" },
+        { "type": "comment", "repo": "dbcodeio/public", "number": 644, "author": "mikeburgh", "contains": "I removed it.. and just released version 1.14.25" }
+      ]
+    },
+    {
+      "id": "stylelint-stylistic",
+      "project": "stylelint-stylistic",
+      "url": "https://github.com/stylelint-stylistic/stylelint-stylistic/issues/39",
+      "status": "shipped",
+      "text": "reported styled-components indentation bugs, fixed in v3.1 and v3.1.1 ([#39](https://github.com/stylelint-stylistic/stylelint-stylistic/issues/39))",
+      "evidence": [
+        { "type": "issue", "repo": "stylelint-stylistic/stylelint-stylistic", "number": 39, "author": "rishitank" },
+        { "type": "pr-fixes-issue", "repo": "stylelint-stylistic/stylelint-stylistic", "number": 41, "issue": 39 },
+        { "type": "pr-fixes-issue", "repo": "stylelint-stylistic/stylelint-stylistic", "number": 44, "issue": 39 },
+        { "type": "comment", "repo": "stylelint-stylistic/stylelint-stylistic", "number": 39, "author": "MorevM", "contains": "The fix is included in the just released version 3.1" },
+        { "type": "comment", "repo": "stylelint-stylistic/stylelint-stylistic", "number": 39, "author": "MorevM", "contains": "there is 3.1.1 release with this fix included" }
+      ]
+    },
+    {
+      "id": "eslint-plugin-project-structure",
+      "project": "eslint-plugin-project-structure",
+      "url": "https://github.com/Igorkowalski94/eslint-plugin-project-structure/issues/14",
+      "status": "shipped",
+      "text": "requested a kebab-case `{parentName}` reference and `jest.mock` import checks; the maintainer shipped them in 2.3.0 and 2.7.0 ([#14](https://github.com/Igorkowalski94/eslint-plugin-project-structure/issues/14), [#18](https://github.com/Igorkowalski94/eslint-plugin-project-structure/discussions/18))",
+      "evidence": [
+        { "type": "issue", "repo": "Igorkowalski94/eslint-plugin-project-structure", "number": 14, "author": "rishitank" },
+        { "type": "comment", "repo": "Igorkowalski94/eslint-plugin-project-structure", "number": 14, "author": "Igorkowalski94", "contains": "I'll add it along with other cases in version 2.3.0" },
+        { "type": "comment", "repo": "Igorkowalski94/eslint-plugin-project-structure", "number": 14, "author": "Igorkowalski94", "contains": "Version 2.3.0 has been released" },
+        { "type": "issue", "repo": "Igorkowalski94/eslint-plugin-project-structure", "number": 15, "author": "rishitank" },
+        { "type": "discussion-answer", "repo": "Igorkowalski94/eslint-plugin-project-structure", "number": 18, "author": "Igorkowalski94", "opener": "rishitank", "contains": "import will be checked starting from version 2.7.0" },
+        { "type": "commit", "repo": "Igorkowalski94/eslint-plugin-project-structure", "sha": "709691b88b494f8ec8209ee60edcb9f0afaa4c78", "contains": "jest.mock import validation" }
+      ]
+    },
+    {
+      "id": "branch-name-lint",
+      "project": "branch-name-lint",
+      "url": "https://github.com/barzik/branch-name-lint/issues/51",
+      "status": "shipped",
+      "text": "asked for JavaScript config files, which the maintainer added in a pull request that fixes my issue ([#51](https://github.com/barzik/branch-name-lint/issues/51), [#66](https://github.com/barzik/branch-name-lint/pull/66))",
+      "evidence": [
+        { "type": "issue", "repo": "barzik/branch-name-lint", "number": 51, "author": "rishitank" },
+        { "type": "pr-fixes-issue", "repo": "barzik/branch-name-lint", "number": 66, "issue": 51 },
+        { "type": "pr", "repo": "barzik/branch-name-lint", "number": 66, "author": "barzik", "merged": true }
+      ]
+    },
+    {
+      "id": "tagify",
+      "project": "Tagify",
+      "url": "https://github.com/yairEO/tagify/issues/595",
+      "status": "shipped",
+      "text": "reported a stray `&nbsp;` added with every tag, fixed by a maintainer commit that cites my issue ([#595](https://github.com/yairEO/tagify/issues/595))",
+      "evidence": [
+        { "type": "issue", "repo": "yairEO/tagify", "number": 595, "author": "rishitank" },
+        { "type": "commit", "repo": "yairEO/tagify", "sha": "1d0d3841afb9325a13dc4477f5033c5a9f1d5512", "contains": "fixes #595" }
+      ]
+    },
+    {
+      "id": "yajs-vim",
+      "project": "yajs.vim",
+      "url": "https://github.com/othree/yajs.vim/issues/168",
+      "status": "shipped",
+      "text": "reported two JavaScript and JSX highlighting bugs, both fixed by commits that cite my issues ([#168](https://github.com/othree/yajs.vim/issues/168), [#169](https://github.com/othree/yajs.vim/issues/169))",
+      "evidence": [
+        { "type": "issue", "repo": "othree/yajs.vim", "number": 168, "author": "rishitank" },
+        { "type": "commit", "repo": "othree/yajs.vim", "sha": "38c5da341903d7c0ef9fca96e195888caf266a7b", "contains": "Fix #168" },
+        { "type": "issue", "repo": "othree/yajs.vim", "number": 169, "author": "rishitank" },
+        { "type": "commit", "repo": "othree/yajs.vim", "sha": "4d76f69ef233025949812f8d19d4a51b8a5a6f12", "contains": "Fix #169" }
+      ]
+    },
+    {
+      "id": "ng-embed",
+      "project": "ng-embed",
+      "url": "https://github.com/ritz078/ng-embed/issues/39",
+      "status": "shipped",
+      "text": "asked for a way to switch off HTML sanitising, added as an option by a pull request that resolves my issue ([#39](https://github.com/ritz078/ng-embed/issues/39), [#53](https://github.com/ritz078/ng-embed/pull/53))",
+      "evidence": [
+        { "type": "issue", "repo": "ritz078/ng-embed", "number": 39, "author": "rishitank" },
+        { "type": "pr-fixes-issue", "repo": "ritz078/ng-embed", "number": 53, "issue": 39 },
+        { "type": "file", "repo": "ritz078/ng-embed", "path": "RELEASES.md", "contains": "Added option to toggle html sanitize, closes #39" }
+      ]
+    }
+  ]
+}

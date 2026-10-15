@@ -1,0 +1,500 @@
+{
+  "$comment": "Every issue and pull request authored by the user outside their own accounts, with the decision taken on it. The weekly discovery job compares GitHub search results with this file: anything new, or anything whose updatedAt has moved, is sent for re-evaluation. Keys are owner/repo#number.",
+  "user": "rishitank",
+  "excludeOwners": [
+    "rishitank",
+    "TanksterAI"
+  ],
+  "items": {
+    "aframevr/aframe#1916": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2016-10-24T21:08:11Z",
+      "decision": "excluded",
+      "reason": "Docs were updated in PR #1996 but it does not reference the issue; link is only inferred, so left out."
+    },
+    "amantus-ai/vibetunnel#526": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-06-15T08:36:26Z",
+      "decision": "included",
+      "entry": "vibetunnel"
+    },
+    "anthropics/claude-plugins-official#1860": {
+      "kind": "pr",
+      "state": "closed",
+      "updatedAt": "2026-05-14T15:23:33Z",
+      "decision": "excluded",
+      "reason": "Closed automatically: the repo only accepts contributions from Anthropic staff."
+    },
+    "anthropics/claude-plugins-official#1861": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2026-05-14T15:25:03Z",
+      "decision": "excluded",
+      "reason": "Open with no response; the plugin config upstream is unchanged. The same fix was merged in claude-code-lsps #73 instead."
+    },
+    "augmentcode/auggie#14": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2025-11-24T18:08:31Z",
+      "decision": "included",
+      "entry": "auggie"
+    },
+    "augmentcode/auggie#16": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-10-02T13:29:02Z",
+      "decision": "excluded",
+      "reason": "Open; only my own follow-ups."
+    },
+    "augmentcode/auggie#17": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-10-03T08:59:35Z",
+      "decision": "excluded",
+      "reason": "Open, no response; Warp integration shipped in 0.27.0 without referencing it."
+    },
+    "augmentcode/auggie#26": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-12-18T18:36:47Z",
+      "decision": "excluded",
+      "reason": "Open; maintainer diagnosed it but no fix confirmed."
+    },
+    "augmentcode/auggie#28": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2025-10-31T21:43:47Z",
+      "decision": "included",
+      "entry": "auggie"
+    },
+    "augmentcode/auggie#31": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2025-11-14T23:07:23Z",
+      "decision": "excluded",
+      "reason": "Closed as completed with no comment or linked fix."
+    },
+    "augmentcode/auggie#32": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2026-01-30T17:50:44Z",
+      "decision": "excluded",
+      "reason": "Open; maintainer called it a known limitation. Later flicker fixes are not linked."
+    },
+    "augmentcode/auggie#36": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-11-26T02:09:59Z",
+      "decision": "excluded",
+      "reason": "Open, no response."
+    },
+    "augmentcode/auggie#37": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-11-26T15:58:19Z",
+      "decision": "excluded",
+      "reason": "Open; queue reordering already existed, task reordering not shipped."
+    },
+    "augmentcode/auggie#38": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-11-26T21:43:25Z",
+      "decision": "excluded",
+      "reason": "Open, no response."
+    },
+    "augmentcode/auggie#42": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-12-03T17:10:18Z",
+      "decision": "excluded",
+      "reason": "Open; maintainer added it to the backlog. A related changelog entry (0.17.0) does not reference it."
+    },
+    "augmentcode/auggie#51": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-12-12T13:39:03Z",
+      "decision": "excluded",
+      "reason": "Open, no response."
+    },
+    "augmentcode/auggie#56": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-12-20T03:41:49Z",
+      "decision": "excluded",
+      "reason": "Open, no response."
+    },
+    "augmentcode/auggie#57": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2025-12-20T04:37:15Z",
+      "decision": "excluded",
+      "reason": "Closed by me 12 minutes after opening."
+    },
+    "augmentcode/auggie#58": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2026-01-22T17:38:42Z",
+      "decision": "excluded",
+      "reason": "Open; maintainer pointed to a cliArgs workaround, not full parity."
+    },
+    "augmentcode/auggie#62": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2026-01-07T16:06:48Z",
+      "decision": "excluded",
+      "reason": "Open; Bun native binaries (PR #96) shipped later but do not reference this issue."
+    },
+    "augmentcode/auggie#65": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-02-14T04:33:41Z",
+      "decision": "excluded",
+      "reason": "Closed as completed with no comment; the 0.16.0 changelog has a matching fix but nothing links it to this issue."
+    },
+    "augmentcode/auggie#67": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2026-01-17T04:02:29Z",
+      "decision": "excluded",
+      "reason": "Open, no response."
+    },
+    "augmentcode/auggie#68": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2026-01-17T17:30:17Z",
+      "decision": "excluded",
+      "reason": "Open; maintainer asked follow-up questions only."
+    },
+    "augmentcode/auggie#8": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-09-29T15:59:10Z",
+      "decision": "excluded",
+      "reason": "Open; discussion only."
+    },
+    "barzik/branch-name-lint#51": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2025-04-25T09:28:09Z",
+      "decision": "included",
+      "entry": "branch-name-lint"
+    },
+    "clauderic/dnd-kit#1394": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-02-16T02:06:02Z",
+      "decision": "excluded",
+      "reason": "Closed in a sweep of issues against the pre-rewrite version."
+    },
+    "dbcodeio/public#613": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2025-08-04T12:20:51Z",
+      "decision": "included",
+      "entry": "dbcode"
+    },
+    "dbcodeio/public#644": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2025-08-04T15:37:33Z",
+      "decision": "included",
+      "entry": "dbcode"
+    },
+    "deshraj/Claud-ometer#1": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-03-13T01:19:20Z",
+      "decision": "excluded",
+      "reason": "Closed as won't fix by the owner."
+    },
+    "drvic10k/bootstrap-sortable#119": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2019-01-24T08:42:10Z",
+      "decision": "excluded",
+      "reason": "Open, no maintainer response."
+    },
+    "electron/electron#14418": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2021-03-08T17:00:00Z",
+      "decision": "excluded",
+      "reason": "Closed by the triage bot as an unsupported version."
+    },
+    "github/copilot-cli#288": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-04-06T20:50:56Z",
+      "decision": "included",
+      "entry": "copilot-cli"
+    },
+    "hashicorp/vault-action#601": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-04-25T00:50:25Z",
+      "decision": "excluded",
+      "reason": "Closed by me as a duplicate of #595; the fix that shipped (#604) does not reference #601."
+    },
+    "Igorkowalski94/eslint-plugin-project-structure#14": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2024-09-04T15:22:56Z",
+      "decision": "included",
+      "entry": "eslint-plugin-project-structure"
+    },
+    "Igorkowalski94/eslint-plugin-project-structure#15": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2024-09-03T08:47:56Z",
+      "decision": "included",
+      "entry": "eslint-plugin-project-structure"
+    },
+    "Igorkowalski94/eslint-plugin-project-structure#16": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2024-09-03T08:47:36Z",
+      "decision": "excluded",
+      "reason": "Closed as not planned; moved to a discussion where nothing was implemented."
+    },
+    "jestjs/jest#10390": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2021-06-24T00:04:03Z",
+      "decision": "excluded",
+      "reason": "Closed by me: caused by my project's jest config."
+    },
+    "jquense/react-widgets#858": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2021-03-31T01:38:29Z",
+      "decision": "excluded",
+      "reason": "Not supported; closed in a mass clean-up."
+    },
+    "jquense/react-widgets#859": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2021-03-31T01:38:29Z",
+      "decision": "excluded",
+      "reason": "Closed in a mass clean-up with no fix."
+    },
+    "junegunn/fzf.vim#718": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2018-10-24T02:43:37Z",
+      "decision": "excluded",
+      "reason": "Open; troubleshooting tip only."
+    },
+    "langchain-ai/langchainjs#1319": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2023-05-18T17:26:16Z",
+      "decision": "excluded",
+      "reason": "Closed by me: a local Redis setup problem, not a bug."
+    },
+    "MatthewSabia1/n8n-nodes-openrouter#2": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-06-12T05:15:09Z",
+      "decision": "excluded",
+      "reason": "Open; no maintainer reply."
+    },
+    "Mergifyio/git-pull-request#98": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2020-03-11T13:07:26Z",
+      "decision": "excluded",
+      "reason": "Open and locked; nothing implemented."
+    },
+    "Mergifyio/git-pull-request#99": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2020-04-09T08:54:54Z",
+      "decision": "excluded",
+      "reason": "Open and locked; nothing implemented."
+    },
+    "NightTrek/Software-planning-mcp#10": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-06-04T23:44:55Z",
+      "decision": "excluded",
+      "reason": "Open, no response; Dockerfile unchanged."
+    },
+    "othree/es.next.syntax.vim#18": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2018-10-07T15:29:28Z",
+      "decision": "excluded",
+      "reason": "Only partly addressed (nullish coalescing, not optional chaining); left out to avoid overclaiming."
+    },
+    "othree/es.next.syntax.vim#19": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2018-10-07T02:04:44Z",
+      "decision": "excluded",
+      "reason": "Open; would need changes in yajs.vim."
+    },
+    "othree/yajs.vim#168": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2018-10-08T02:23:36Z",
+      "decision": "included",
+      "entry": "yajs-vim"
+    },
+    "othree/yajs.vim#169": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2018-10-07T15:26:55Z",
+      "decision": "included",
+      "entry": "yajs-vim"
+    },
+    "Piebald-AI/claude-code-lsps#54": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-03-06T10:34:02Z",
+      "decision": "included",
+      "entry": "claude-code-lsps"
+    },
+    "Piebald-AI/claude-code-lsps#56": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-03-22T14:10:07Z",
+      "decision": "included",
+      "entry": "claude-code-lsps"
+    },
+    "Piebald-AI/claude-code-lsps#73": {
+      "kind": "pr",
+      "state": "merged",
+      "updatedAt": "2026-06-01T01:43:49Z",
+      "decision": "included",
+      "entry": "claude-code-lsps"
+    },
+    "Redocly/openapi-sampler#223": {
+      "kind": "pr",
+      "state": "open",
+      "updatedAt": "2026-10-14T23:13:25Z",
+      "decision": "included",
+      "entry": "redoc"
+    },
+    "Redocly/redoc#2334": {
+      "kind": "pr",
+      "state": "closed",
+      "updatedAt": "2023-06-13T08:52:04Z",
+      "decision": "excluded",
+      "reason": "Opened against upstream by mistake (internal epic branch) and closed within minutes."
+    },
+    "Redocly/redoc#2339": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2023-06-14T06:32:24Z",
+      "decision": "excluded",
+      "reason": "Open; triaged as an idea. #2869 implements CSV but does not cite it, so it is credited through the Redoc PRs instead."
+    },
+    "Redocly/redoc#2340": {
+      "kind": "pr",
+      "state": "closed",
+      "updatedAt": "2023-06-13T15:22:51Z",
+      "decision": "excluded",
+      "reason": "Opened against upstream by mistake (internal epic branch) and closed within minutes."
+    },
+    "Redocly/redoc#2347": {
+      "kind": "pr",
+      "state": "closed",
+      "updatedAt": "2026-10-14T16:08:44Z",
+      "decision": "included",
+      "entry": "redoc"
+    },
+    "Redocly/redoc#2869": {
+      "kind": "pr",
+      "state": "merged",
+      "updatedAt": "2026-10-15T15:09:15Z",
+      "decision": "included",
+      "entry": "redoc"
+    },
+    "ritz078/ng-embed#39": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2017-06-08T13:15:01Z",
+      "decision": "included",
+      "entry": "ng-embed"
+    },
+    "SickChill/qnap-sickchill#11": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2021-04-26T07:00:41Z",
+      "decision": "excluded",
+      "reason": "Closed with no comment or fix."
+    },
+    "snapappointments/bootstrap-select#1659": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2021-06-04T19:18:44Z",
+      "decision": "excluded",
+      "reason": "Closed with no comment or fix."
+    },
+    "snapappointments/bootstrap-select#1778": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2021-06-27T01:50:11Z",
+      "decision": "excluded",
+      "reason": "Closed as a duplicate of an issue that is still open."
+    },
+    "StuMason/coolify-mcp#110": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-02-24T11:47:28Z",
+      "decision": "included",
+      "entry": "coolify-mcp"
+    },
+    "stylelint-stylistic/stylelint-stylistic#39": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2026-09-08T20:46:55Z",
+      "decision": "included",
+      "entry": "stylelint-stylistic"
+    },
+    "swellaby/vscode-workspace-config-plus#162": {
+      "kind": "issue",
+      "state": "open",
+      "updatedAt": "2025-07-22T20:39:30Z",
+      "decision": "excluded",
+      "reason": "Open, no response."
+    },
+    "testing-library/react-testing-library#708": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2020-09-28T20:27:19Z",
+      "decision": "excluded",
+      "reason": "Usage question answered by the maintainer."
+    },
+    "webpack/css-loader#882": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2019-01-04T17:17:14Z",
+      "decision": "excluded",
+      "reason": "Expected behaviour in css-loader 2 (breaking change)."
+    },
+    "webpack/css-loader#883": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2019-03-14T10:56:21Z",
+      "decision": "excluded",
+      "reason": "Resolved by a change to my own config."
+    },
+    "yairEO/tagify#595": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2020-07-28T19:21:32Z",
+      "decision": "included",
+      "entry": "tagify"
+    },
+    "yairEO/tagify#598": {
+      "kind": "issue",
+      "state": "closed",
+      "updatedAt": "2020-07-29T16:29:31Z",
+      "decision": "excluded",
+      "reason": "Closed by me: solved with CSS."
+    }
+  }
+}

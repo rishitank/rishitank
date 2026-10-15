@@ -1,0 +1,456 @@
+# Weekly: find new or changed upstream contributions and propose an update to
+# data/open-source.json as a pull request. See docs/open-source.md for the
+# rules and the picture.
+#
+# Four jobs, each with the least it needs:
+#
+#   scan     no AI, read-only token. GitHub search + the ledger say whether
+#            anything is new or changed; verify-claims says whether anything
+#            already listed stopped being true. A quiet week stops here and
+#            costs no tokens.
+#   curate   Claude, read-only token. Its tools are reading files inside the
+#            checkout (never /proc, where its own environment holds the
+#            Claude token, nor the runner's temp folder), editing the two
+#            data files and oss-summary.md (exact paths), and four exact
+#            commands: gh-read.mjs (read-only GitHub), sync-ledger, validate
+#            and verify-claims. Text it reads on GitHub is written by
+#            strangers, so the job can't push, comment or call any write API
+#            even if a prompt injection tells it to, and its subprocesses run
+#            with secrets scrubbed from the environment.
+#   review   a second Claude with fresh context and no write tools at all. It
+#            re-reads the sources and returns a structured verdict.
+#   publish  no AI. A fresh checkout of main takes *only* the two data files
+#            from the curator (never its scripts, never its README), checks
+#            the ledger still belongs to the same user and lost no items,
+#            copies the scan's facts into the ledger, regenerates the README,
+#            runs the same checks as CI plus a credential scan of everything
+#            model-written, opens the PR and either arms auto-merge or labels
+#            it needs-human-review.
+#
+# Secrets (both required; see docs/open-source.md):
+#   CLAUDE_CODE_OAUTH_TOKEN  from `claude setup-token` (Pro/Max plan)
+#   OSS_PR_TOKEN             fine-grained PAT, this repo only, Contents and
+#                            Pull requests read/write. A PR opened with
+#                            GITHUB_TOKEN would not trigger the ci-gate run.
+name: open-source-discover
+
+on:
+  schedule:
+    # Mondays 06:17 UTC. Off the hour, when GitHub's scheduler is least busy.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: open-source-discover
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "26"
+
+jobs:
+  scan:
+    name: Scan for new or changed contributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read # check out the repository
+      pull-requests: read # list open discovery PRs (one proposal at a time)
+    outputs:
+      run_agent: ${{ steps.decide.outputs.run_agent }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Is an earlier update still waiting?
+        # One proposal at a time: if last week's PR is still open (waiting for
+        # review, or labelled needs-human-review), a second one would only
+        # conflict with it.
+        id: pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          n="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json headRefName \
+                 --jq '[.[] | select(.headRefName | startswith("oss/discovery-"))] | length')"
+          echo "open=$n" >> "$GITHUB_OUTPUT"
+          if [ "$n" -gt 0 ]; then echo "::notice::$n open discovery PR(s); not proposing another this week."; fi
+
+      - name: Search GitHub and compare with the ledger
+        id: discover
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p scan
+          node scripts/oss/discover.mjs --out scan/discovery.json
+
+      - name: Re-check every listed claim
+        id: verify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # Exit 1 means a listed claim is false (the curator should fix it);
+        # exit 2 means the check could not run (network, rate limit), which is
+        # not a reason to spend an agent run.
+        run: |
+          set +e
+          node scripts/oss/verify-claims.mjs --json scan/verify.json
+          code=$?
+          set -e
+          if [ "$code" = "1" ]; then echo "failed=true" >> "$GITHUB_OUTPUT"; else echo "failed=false" >> "$GITHUB_OUTPUT"; fi
+          if [ "$code" = "2" ]; then echo "::warning::verify-claims could not complete; claims were not re-checked this week."; rm -f scan/verify.json; fi
+
+      - name: Decide whether the agents need to run
+        id: decide
+        env:
+          OPEN: ${{ steps.pending.outputs.open }}
+          CHANGED: ${{ steps.discover.outputs.changed }}
+          VERIFY_FAILED: ${{ steps.verify.outputs.failed }}
+        run: |
+          run_agent=false
+          if [ "$OPEN" = "0" ] && { [ "$CHANGED" = "true" ] || [ "$VERIFY_FAILED" = "true" ]; }; then run_agent=true; fi
+          echo "run_agent=$run_agent" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Open-source scan"
+            echo "- open discovery PRs: $OPEN"
+            echo "- new or changed upstream items: $CHANGED"
+            echo "- listed claims failing: $VERIFY_FAILED"
+            echo "- curator runs: $run_agent"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scan
+          path: scan/
+          retention-days: 14
+
+  curate:
+    name: Curate (Claude)
+    needs: scan
+    if: needs.scan.outputs.run_agent == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: scan
+          path: scan
+
+      - name: Hand the read-only token to gh-read through a file
+        # The agent's subprocesses run with secrets scrubbed from their
+        # environment (CLAUDE_CODE_SUBPROCESS_ENV_SCRUB), so gh-read.mjs reads
+        # this job's own token from a file instead. The token can only read
+        # this public repository and expires when the job ends.
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          umask 077
+          printf '%s' "$TOKEN" > "$RUNNER_TEMP/oss-read-token"
+          echo "OSS_READ_TOKEN_FILE=$RUNNER_TEMP/oss-read-token" >> "$GITHUB_ENV"
+
+      - name: Curate the changes
+        # Pinned to a commit: this action runs with the Claude token, so a
+        # moved tag must not be able to change what it executes.
+        #
+        # File access: Read(./**) allows the checkout only (Glob and Grep
+        # follow the Read rules), and headless runs deny anything else. The
+        # explicit denies are belt and braces for the places that matter:
+        # /proc/<pid>/environ holds CLAUDE_CODE_OAUTH_TOKEN (the scrub only
+        # covers subprocesses), and the runner temp folder holds the job
+        # token file. Deny rules win over allow rules.
+        uses: anthropics/claude-code-action@34968b5981d5d170904281aa3df6f3c0d4a28855 # v1.0.249
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Follow .github/open-source/curator.md exactly. The scan results are in scan/.
+          claude_args: >-
+            --max-turns 120
+            --allowedTools "Read(./**),Glob,Grep,Edit(data/open-source.json),Edit(data/open-source-ledger.json),Write(data/open-source.json),Write(data/open-source-ledger.json),Write(oss-summary.md),Bash(node scripts/oss/gh-read.mjs --thread *),Bash(node scripts/oss/gh-read.mjs --discussion *),Bash(node scripts/oss/gh-read.mjs /repos/*),Bash(node scripts/oss/gh-read.mjs --all /repos/*),Bash(node scripts/oss/sync-ledger.mjs scan/discovery.json),Bash(node scripts/oss/validate.mjs),Bash(node scripts/oss/verify-claims.mjs)"
+            --disallowedTools "Read(//proc/**),Read(//sys/**),Read(//home/runner/work/_temp/**)"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: curated
+          path: |
+            data/open-source.json
+            data/open-source-ledger.json
+            oss-summary.md
+          if-no-files-found: error
+          retention-days: 14
+
+  review:
+    name: Independent review (Claude)
+    needs: curate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: curated
+          path: curated
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: scan
+          path: scan
+
+      - name: Stage the review inputs
+        run: |
+          set -euo pipefail
+          cp curated/data/open-source.json curated/data/open-source-ledger.json data/
+          mkdir -p review
+          git diff -- data/ > review/changes.diff
+          cp curated/oss-summary.md review/summary.md 2>/dev/null || echo "(the curator wrote no summary)" > review/summary.md
+          cp scan/discovery.json review/discovery.json
+          wc -l review/changes.diff
+
+      - name: Hand the read-only token to gh-read through a file
+        # The agent's subprocesses run with secrets scrubbed from their
+        # environment (CLAUDE_CODE_SUBPROCESS_ENV_SCRUB), so gh-read.mjs reads
+        # this job's own token from a file instead. The token can only read
+        # this public repository and expires when the job ends.
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          umask 077
+          printf '%s' "$TOKEN" > "$RUNNER_TEMP/oss-read-token"
+          echo "OSS_READ_TOKEN_FILE=$RUNNER_TEMP/oss-read-token" >> "$GITHUB_ENV"
+
+      - name: Review
+        id: claude
+        uses: anthropics/claude-code-action@34968b5981d5d170904281aa3df6f3c0d4a28855 # v1.0.249
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Follow .github/open-source/reviewer.md exactly. Your inputs are in review/.
+          claude_args: >-
+            --max-turns 80
+            --allowedTools "Read(./**),Glob,Grep,Bash(node scripts/oss/gh-read.mjs --thread *),Bash(node scripts/oss/gh-read.mjs --discussion *),Bash(node scripts/oss/gh-read.mjs /repos/*),Bash(node scripts/oss/gh-read.mjs --all /repos/*)"
+            --disallowedTools "Read(//proc/**),Read(//sys/**),Read(//home/runner/work/_temp/**)"
+            --json-schema '{"type":"object","additionalProperties":false,"required":["verdict","summary","findings"],"properties":{"verdict":{"type":"string","enum":["approve","needs-human-review"]},"summary":{"type":"string"},"findings":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["item","severity","note"],"properties":{"item":{"type":"string"},"severity":{"type":"string","enum":["blocker","nit"]},"note":{"type":"string"},"source":{"type":"string"}}}}}}'
+
+      - name: Save the verdict
+        env:
+          VERDICT_JSON: ${{ steps.claude.outputs.structured_output }}
+        run: |
+          set -euo pipefail
+          mkdir -p verdict
+          # No structured output (the run failed or ran out of turns) counts as
+          # "needs a human", never as approval.
+          if [ -n "$VERDICT_JSON" ] && printf '%s' "$VERDICT_JSON" | jq -e . > /dev/null; then
+            printf '%s' "$VERDICT_JSON" > verdict/verdict.json
+          else
+            echo '{"verdict":"needs-human-review","summary":"The reviewer produced no verdict.","findings":[]}' > verdict/verdict.json
+          fi
+          jq -r '"verdict: \(.verdict)"' verdict/verdict.json
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verdict
+          path: verdict/
+          retention-days: 14
+
+  publish:
+    name: Open the pull request
+    needs: [curate, review]
+    # Runs even if the review job failed: a missing verdict is treated as
+    # "needs a human", so a broken reviewer can never approve anything.
+    if: ${{ !cancelled() && needs.curate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Require the PR token
+        # The PAT is given only to the steps that need it, never job-wide.
+        env:
+          OSS_PR_TOKEN: ${{ secrets.OSS_PR_TOKEN }}
+        run: |
+          if [ -z "$OSS_PR_TOKEN" ]; then
+            echo "::error::OSS_PR_TOKEN is not set. See docs/open-source.md (One-time setup)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: curated
+          path: curated
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: scan
+          path: scan
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: verdict
+          path: verdict
+
+      - name: Default to needs-human-review when there is no verdict
+        run: |
+          if ! jq -e '.verdict' verdict/verdict.json > /dev/null 2>&1; then
+            mkdir -p verdict
+            echo '{"verdict":"needs-human-review","summary":"The review job did not produce a verdict.","findings":[]}' > verdict/verdict.json
+          fi
+
+      - name: Take only the two data files from the curator
+        run: |
+          set -euo pipefail
+          cp data/open-source-ledger.json "$RUNNER_TEMP/base-ledger.json"
+          cp curated/data/open-source.json curated/data/open-source-ledger.json data/
+
+      - name: Copy the scan's facts into the ledger
+        run: node scripts/oss/sync-ledger.mjs scan/discovery.json
+
+      - name: Regenerate the README block
+        run: node scripts/oss/render-readme.mjs
+
+      - name: Same checks as CI
+        id: checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.mjs
+          # Also: the ledger keeps main's user, owners and items, and nothing
+          # model-written that goes into the PR body looks like a credential.
+          node scripts/oss/validate.mjs --base-ledger "$RUNNER_TEMP/base-ledger.json" --scan curated/oss-summary.md verdict/verdict.json
+          if node scripts/oss/verify-claims.mjs; then echo "verified=true" >> "$GITHUB_OUTPUT"; else echo "verified=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Anything to propose?
+        id: diff
+        run: |
+          if [ -z "$(git status --porcelain -- data/ README.md)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::The curator decided nothing needs to change."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- data/ README.md
+          fi
+
+      - name: Open the pull request
+        if: steps.diff.outputs.changed == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.OSS_PR_TOKEN }}
+          VERIFIED: ${{ steps.checks.outputs.verified }}
+        run: |
+          set -euo pipefail
+          branch="oss/discovery-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add -- data/ README.md
+          git commit -q -m "open source: weekly update $(date -u +%Y-%m-%d)" \
+            -m "Proposed by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          git push -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${branch}"
+
+          # Everything model-written goes inside a fenced block: no @mentions
+          # that notify people, no "Fixes #N" that closes issues, and no links
+          # that add "mentioned this" entries to maintainers' threads.
+          # The fence is ten tildes and any run of four or more inside the
+          # text is shortened, so the text can never close it early. Each
+          # block is capped at 150 lines of 1,000 characters; awk reads to the
+          # end, so the writer never gets SIGPIPE (which pipefail would turn
+          # into a failed step).
+          fence() { sed -E 's/~{4,}/~~~/g' | awk 'NR <= 150 { print substr($0, 1, 1000) }'; }
+          {
+            echo "Weekly update to the open-source list, proposed by [this run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
+            echo
+            echo "**Independent review: $(jq -r .verdict verdict/verdict.json)**"
+            echo
+            echo "**Deterministic checks:** unit tests, data and ledger validation passed; every claim re-checked against GitHub: $([ "$VERIFIED" = "true" ] && echo passed || echo '**failed** (see the run log)')."
+            echo
+            echo "### Reviewer"
+            echo '~~~~~~~~~~text'
+            jq -r '.summary, "", (.findings[]? | "- [\(.severity)] \(.item): \(.note)\(if .source then " (\(.source))" else "" end)")' verdict/verdict.json | fence
+            echo '~~~~~~~~~~'
+            echo
+            echo "### Curator's summary"
+            echo '~~~~~~~~~~text'
+            { cat curated/oss-summary.md 2>/dev/null || echo "(none)"; } | fence
+            echo '~~~~~~~~~~'
+          } > pr-body.md
+
+          url="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+                  --title "open source: weekly update $(date -u +%Y-%m-%d)" --body-file pr-body.md)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Opened $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Arm auto-merge, or ask for a human
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.OSS_PR_TOKEN }}
+          URL: ${{ steps.pr.outputs.url }}
+          VERIFIED: ${{ steps.checks.outputs.verified }}
+        run: |
+          set -euo pipefail
+          verdict="$(jq -r .verdict verdict/verdict.json)"
+          flag() {
+            gh label create needs-human-review --repo "$GITHUB_REPOSITORY" --color B60205 \
+              --description "Automation will not merge this; a person must" --force > /dev/null
+            gh pr edit "$URL" --add-label needs-human-review > /dev/null
+            gh pr comment "$URL" --body "Not auto-merging: $1" > /dev/null
+            echo "::notice::Flagged for a human: $1"
+          }
+          if [ "$verdict" != "approve" ]; then flag "the independent review asked for a human."; exit 0; fi
+          if [ "$VERIFIED" != "true" ]; then flag "a claim failed verification against GitHub."; exit 0; fi
+
+          # The same fence as rishitank/.github's auto-merge sweep: arm only if
+          # main itself requires an approval AND a CI check other than
+          # CodeRabbit, so GitHub can't merge before both have passed.
+          rules="$(gh api "repos/${GITHUB_REPOSITORY}/rules/branches/main" 2>/dev/null)" || rules='[]'
+          printf '%s' "$rules" | jq -e 'type == "array"' > /dev/null 2>&1 || rules='[]'
+          approvals="$(printf '%s' "$rules" | jq '[.[] | select(.type=="pull_request") | .parameters.required_approving_review_count] | max // 0')"
+          checks="$(printf '%s' "$rules" | jq '[.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context | select(. != "CodeRabbit")] | length')"
+          if [ "$approvals" -ge 1 ] && [ "$checks" -ge 1 ]; then
+            if gh pr merge "$URL" --auto --squash; then
+              echo "::notice::Auto-merge armed: merges once ci-gate passes and CodeRabbit approves."
+            else
+              gh pr comment "$URL" --body "Approved and verified, but arming auto-merge failed (is \"Allow auto-merge\" on in the repository settings?). Merge by hand once checks pass." > /dev/null
+              echo "::warning::gh pr merge --auto failed; left for a manual merge."
+            fi
+          else
+            gh pr comment "$URL" --body "Approved by the review and verified, but not armed: \`main\` does not yet require both an approval and a CI check (the account rulesets from rishitank/.github). Merge by hand, or let the auto-merge sweep arm it once those rulesets are in place." > /dev/null
+            echo "::notice::main is not gated (approvals=$approvals, checks=$checks); left for a manual merge."
+          fi

@@ -47,14 +47,27 @@ The whole map, with what each piece honestly is not: [rishitank.co.uk/robustness
 
 ## Open source
 
-Upstream issues, proposals and fixes that maintainers shipped:
+<!-- open-source:start -->
+<!-- Generated from data/open-source.json by scripts/oss/render-readme.mjs. Edit the JSON, not this block. -->
 
+Upstream issues, proposals and fixes, each backed by a linked issue or pull request:
+
+- **Redoc**: built XML and CSV response examples for Adthena's API docs, first proposed in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later backed by another developer. CSV support is merged for the next release ([#2869](https://github.com/Redocly/redoc/pull/2869)); my XML fixes to openapi-sampler await review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))
+- **claude-code-lsps**: had a Java language-server (jdtls) reliability fix merged ([#73](https://github.com/Piebald-AI/claude-code-lsps/pull/73)); my request led to Scala (Metals) support ([#54](https://github.com/Piebald-AI/claude-code-lsps/issues/54)), and my diagnosis of why it would not load got it fixed ([#56](https://github.com/Piebald-AI/claude-code-lsps/issues/56))
 - **GitHub Copilot CLI**: proposed repo-specific MCP configs, shipped as the repeatable `--additional-mcp-config` flag ([#288](https://github.com/github/copilot-cli/issues/288))
-- **MCP TypeScript SDK**: my `docker run --init` workaround stopped orphaned MCP containers and closed the issue ([#547](https://github.com/modelcontextprotocol/typescript-sdk/issues/547))
-- **claude-code-lsps**: merged a Java language-server (jdtls) reliability fix ([#73](https://github.com/Piebald-AI/claude-code-lsps/pull/73)); my request added Scala (Metals) support ([#54](https://github.com/Piebald-AI/claude-code-lsps/issues/54))
-- **DBCode**: requested Redshift Spectrum support, shipped in 1.14.24, then caught the regression fixed in 1.14.25 ([#613](https://github.com/dbcodeio/public/issues/613), [#644](https://github.com/dbcodeio/public/issues/644))
+- **MCP TypeScript SDK**: my `docker run --init` workaround for orphaned MCP containers was credited by the maintainer when closing the issue ([#547](https://github.com/modelcontextprotocol/typescript-sdk/issues/547))
+- **VibeTunnel**: requested Auggie CLI support, added in v1.0.0-beta.16 and credited to me in its release notes ([#526](https://github.com/amantus-ai/vibetunnel/issues/526), [#680](https://github.com/amantus-ai/vibetunnel/pull/680))
+- **coolify-mcp**: reported that updating an application's domain failed because the server sent `fqdn` where the Coolify API now expects `domains`; the owner closed it as fixed by a later pull request ([#110](https://github.com/StuMason/coolify-mcp/issues/110), [#125](https://github.com/StuMason/coolify-mcp/pull/125))
+- **Auggie CLI**: reported a response-delay regression in v0.6.0 and tested the maintainers' prerelease fix, shipped as 0.6.1 ([#28](https://github.com/augmentcode/auggie/issues/28)); a maintainer said my request for native shell support should be fixed in the latest release ([#14](https://github.com/augmentcode/auggie/issues/14))
+- **DBCode**: requested Redshift Spectrum support, shipped in 1.14.24, then reported a regression in that release, fixed in 1.14.25 ([#613](https://github.com/dbcodeio/public/issues/613), [#644](https://github.com/dbcodeio/public/issues/644))
 - **stylelint-stylistic**: reported styled-components indentation bugs, fixed in v3.1 and v3.1.1 ([#39](https://github.com/stylelint-stylistic/stylelint-stylistic/issues/39))
-- **Redoc**: built XML and CSV response examples for Adthena's API docs, first proposed in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later requested by other developers. CSV is merged into v3 for the next release ([#2869](https://github.com/Redocly/redoc/pull/2869)); my XML fixes to openapi-sampler await review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))
+- **eslint-plugin-project-structure**: requested a kebab-case `{parentName}` reference and `jest.mock` import checks; the maintainer shipped them in 2.3.0 and 2.7.0 ([#14](https://github.com/Igorkowalski94/eslint-plugin-project-structure/issues/14), [#18](https://github.com/Igorkowalski94/eslint-plugin-project-structure/discussions/18))
+- **branch-name-lint**: asked for JavaScript config files, which the maintainer added in a pull request that fixes my issue ([#51](https://github.com/barzik/branch-name-lint/issues/51), [#66](https://github.com/barzik/branch-name-lint/pull/66))
+- **Tagify**: reported a stray `&nbsp;` added with every tag, fixed by a maintainer commit that cites my issue ([#595](https://github.com/yairEO/tagify/issues/595))
+- **yajs.vim**: reported two JavaScript and JSX highlighting bugs, both fixed by commits that cite my issues ([#168](https://github.com/othree/yajs.vim/issues/168), [#169](https://github.com/othree/yajs.vim/issues/169))
+- **ng-embed**: asked for a way to switch off HTML sanitising, added as an option by a pull request that resolves my issue ([#39](https://github.com/ritz078/ng-embed/issues/39), [#53](https://github.com/ritz078/ng-embed/pull/53))
+
+<!-- open-source:end -->
 
 ## How I work
 
