@@ -49,7 +49,7 @@ For each `new` and `changed` item:
      new entry. Every entry needs at least one piece of evidence of each kind
      the text claims (e.g. "fixed in v2.6.4" needs a `release` or `comment`
      piece that says so). Copy `contains` strings **exactly** from the source,
-     character for character, short but unambiguous (6–60 characters).
+     character for character, short but unambiguous (6–160 characters).
      Set `status` to `merged` (a PR merged), `shipped` (a maintainer, commit
      or release says it shipped), `credited` (a maintainer credited the
      user's comment) or `in-review` (the user's PR is open); validation checks
