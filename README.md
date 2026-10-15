@@ -31,6 +31,7 @@ The whole map, with what each piece honestly is not: [rishitank.co.uk/robustness
   that skips editions I've already played, published as a private podcast that I listen to daily. Each show
   has a fallback chain, builds that change nothing publish nothing, and deploys are keyless through
   Workload Identity Federation. Designed by me, built by directing AI coding agents; source private for now.
+  [case study](https://rishitank.co.uk/projects/news-brief)
 - [**PreviewProof**](https://preview-proof.lovable.app): paste a URL and see the Google, X, LinkedIn,
   Slack and WhatsApp previews it really produces, with a copy-paste fix for each problem. Built in
   Lovable, then hardened through its GitHub sync: an SSRF-resistant fetcher, unit and
