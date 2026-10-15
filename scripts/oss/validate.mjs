@@ -22,6 +22,12 @@ const ledger = readJson(path.join(root, "data/open-source-ledger.json"));
 const args = process.argv.slice(2);
 const baseIdx = args.indexOf("--base-ledger");
 const baseLedger = baseIdx === -1 ? null : args[baseIdx + 1];
+// A guard that silently does nothing is worse than none: refuse a
+// --base-ledger with no file after it rather than skip the check.
+if (baseIdx !== -1 && (!baseLedger || baseLedger.startsWith("--"))) {
+  console.error("--base-ledger needs a file path");
+  process.exit(2);
+}
 const scanIdx = args.indexOf("--scan");
 const extra = scanIdx === -1 ? [] : args.slice(scanIdx + 1).filter((a) => !a.startsWith("--"));
 

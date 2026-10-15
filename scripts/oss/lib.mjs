@@ -110,7 +110,11 @@ export function parseInline(text) {
       if (close === -1 || end === -1) throw new Error(`malformed link at ${i}`);
       const label = text.slice(i + 1, close);
       const href = text.slice(close + 2, end);
-      if (!label.trim() || /[[\]`]/.test(label)) throw new Error(`bad link label at ${i}`);
+      // Brackets, backticks and parentheses in a label would make the Markdown
+      // link ambiguous to read, so labels are kept to plain words and numbers.
+      // (The portfolio's copy may accept more; it only ever sees files that
+      // passed this check.)
+      if (!label.trim() || /[[\]`()]/.test(label)) throw new Error(`bad link label at ${i}`);
       checkPlain(label, "link label");
       if (!GITHUB_URL_RE.test(href)) throw new Error(`link must be a GitHub repo, issue, PR, discussion, release or commit URL: ${href}`);
       flush();
