@@ -40,9 +40,15 @@ export const GITHUB_URL_RE = new RegExp(
 );
 const MAX_TEXT = 420;
 const MAX_PLAIN = 120;
+// The portfolio refuses a file with more entries than this, so the producer
+// must too, or a merged file could never reach the site.
+export const MAX_ENTRIES = 50;
 // Outside `code`, these would be markup in GitHub Markdown (HTML, emphasis,
-// strikethrough, entities, bare autolinks, @mentions) or break a list item.
-const FORBIDDEN_PLAIN = /[<>*_~&@\]\n\r\t]|https?:\/\/|www\./i;
+// strikethrough, entities, bare autolinks, @mentions, "!" turning a link into
+// an image, a backslash escaping the next character) or break a list item.
+// The portfolio shows them literally, so allowing them would make the two
+// surfaces render the same text differently.
+const FORBIDDEN_PLAIN = /[<>*_~&@!\\\]\n\r\t]|https?:\/\/|www\./i;
 // Bidirectional-override and isolate controls (U+202A-202E, U+2066-2069)
 // can make text display differently from what it says. Checked by code point
 // so the source itself never contains them.
@@ -62,12 +68,16 @@ export function readJson(path) {
 // GitHub would treat as markup (see FORBIDDEN_PLAIN). Returns tokens, or
 // throws with the reason. The portfolio has a TypeScript copy of this grammar
 // in src/lib/open-source.ts; keep the two in step.
-export function checkPlain(text, what = "text") {
-  const m = FORBIDDEN_PLAIN.exec(text);
-  if (m) throw new Error(`${what} contains ${JSON.stringify(m[0])}, which is not allowed outside \`code\``);
+function checkBidi(text, what) {
   for (const ch of text) {
     if (isBidiControl(ch.codePointAt(0))) throw new Error(`${what} contains a bidirectional control character`);
   }
+}
+
+export function checkPlain(text, what = "text") {
+  const m = FORBIDDEN_PLAIN.exec(text);
+  if (m) throw new Error(`${what} contains ${JSON.stringify(m[0])}, which is not allowed outside \`code\``);
+  checkBidi(text, what);
 }
 
 export function parseInline(text) {
@@ -88,6 +98,9 @@ export function parseInline(text) {
       if (end === -1) throw new Error(`unclosed backtick at ${i}`);
       const value = text.slice(i + 1, end);
       if (!value.trim() || /[\n\r]/.test(value)) throw new Error(`empty or multi-line code span at ${i}`);
+      // Code may hold markup characters, but never text that displays in a
+      // different order from how it reads.
+      checkBidi(value, "code span");
       flush();
       tokens.push({ type: "code", value });
       i = end + 1;
@@ -125,10 +138,14 @@ function validateEvidence(ev, where, errors) {
   const needAuthor = ["issue", "pr", "comment", "discussion-answer"];
   if (needAuthor.includes(ev.type) && !(typeof ev.author === "string" && ev.author)) fail(errors, where, "author is required");
   const needContains = ["comment", "commit", "release", "file", "discussion-answer"];
-  if (needContains.includes(ev.type) && !(typeof ev.contains === "string" && ev.contains.length >= 6 && ev.contains.length <= 160))
-    fail(errors, where, "contains must be an exact quote of 6-160 characters");
-  if (ev.type === "pr" && "contains" in ev && !(typeof ev.contains === "string" && ev.contains.length >= 6 && ev.contains.length <= 160))
-    fail(errors, where, "contains must be an exact quote of 6-160 characters");
+  const quoteOk = typeof ev.contains === "string" && ev.contains.length >= 6 && ev.contains.length <= 160;
+  if (needContains.includes(ev.type) && !quoteOk) fail(errors, where, "contains must be an exact quote of 6-160 characters");
+  // Optional on an issue or a PR: a quote from its title or description.
+  if ((ev.type === "issue" || ev.type === "pr") && "contains" in ev && !quoteOk) fail(errors, where, "contains must be an exact quote of 6-160 characters");
+  // Optional on a PR: the branch it was merged into.
+  if (ev.type === "pr" && "base" in ev && !(typeof ev.base === "string" && /^[A-Za-z0-9._/-]{1,100}$/.test(ev.base))) fail(errors, where, "base must be a branch name");
+  // Optional on a discussion answer: who opened the discussion.
+  if (ev.type === "discussion-answer" && "opener" in ev && !(typeof ev.opener === "string" && ev.opener)) fail(errors, where, "opener must be a GitHub login");
   if (ev.type === "pr-fixes-issue" && !(Number.isInteger(ev.issue) && ev.issue > 0)) fail(errors, where, "issue must be a positive integer");
   if (ev.type === "commit" && !/^[0-9a-f]{40}$/.test(ev.sha ?? "")) fail(errors, where, "sha must be a full 40-character commit SHA");
   if (ev.type === "release" && !(typeof ev.tag === "string" && ev.tag)) fail(errors, where, "tag is required");
@@ -141,6 +158,7 @@ export function validateData(data) {
   const errors = [];
   if (!data || typeof data !== "object") return ["root: not an object"];
   if (typeof data.heading !== "string" || !data.heading.trim() || data.heading.length > MAX_PLAIN) fail(errors, "heading", `must be plain text of 1-${MAX_PLAIN} characters`);
+  else if (/[[\]`]/.test(data.heading)) fail(errors, "heading", "must not contain [, ] or a backtick");
   else {
     try {
       checkPlain(data.heading, "heading");
@@ -149,6 +167,7 @@ export function validateData(data) {
     }
   }
   if (!Array.isArray(data.entries) || data.entries.length === 0) return [...errors, "entries: must be a non-empty array"];
+  if (data.entries.length > MAX_ENTRIES) fail(errors, "entries", `at most ${MAX_ENTRIES} entries; the portfolio refuses more`);
   const ids = new Set();
   const urls = new Set();
   data.entries.forEach((e, idx) => {
@@ -183,10 +202,12 @@ export function validateData(data) {
     if (!Array.isArray(e.evidence) || e.evidence.length === 0) fail(errors, where, "evidence must be a non-empty array");
     else {
       e.evidence.forEach((ev, j) => validateEvidence(ev, `${where}.evidence[${j}]`, errors));
-      // The status must be backed by evidence of the matching kind.
+      // The status must be backed by evidence of the matching kind. That the
+      // evidence involves the user is checked in validateLedger, which knows
+      // who the user is.
       const types = new Set(e.evidence.map((ev) => ev?.type));
-      const mergedPr = e.evidence.some((ev) => (ev?.type === "pr" && ev.merged === true) || ev?.type === "pr-fixes-issue");
-      if (e.status === "merged" && !mergedPr) fail(errors, where, "status merged needs a merged pr or pr-fixes-issue evidence");
+      const mergedPr = e.evidence.some((ev) => ev?.type === "pr" && ev.merged === true);
+      if (e.status === "merged" && !mergedPr) fail(errors, where, "status merged needs a merged pr evidence");
       if (e.status === "shipped" && !["comment", "release", "commit", "file", "discussion-answer", "pr-fixes-issue"].some((t) => types.has(t)))
         fail(errors, where, "status shipped needs a comment, release, commit, file, discussion-answer or pr-fixes-issue evidence");
       if (e.status === "credited" && !types.has("comment")) fail(errors, where, "status credited needs a comment evidence");
@@ -230,8 +251,13 @@ export function validateLedger(ledger, data) {
   if (typeof ledger?.user !== "string" || !ledger.user) return ["ledger.user is required"];
   if (!Array.isArray(ledger.excludeOwners)) errors.push("ledger.excludeOwners must be an array");
   const items = ledger.items ?? {};
-  const entryIds = new Set((data.entries ?? []).map((e) => e.id));
+  const entries = (data.entries ?? []).filter((e) => e && typeof e === "object" && !Array.isArray(e));
+  const entryIds = new Set(entries.map((e) => e.id));
   for (const [key, item] of Object.entries(items)) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      errors.push(`ledger ${key}: must be an object`);
+      continue;
+    }
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+#\d+$/.test(key)) errors.push(`ledger ${key}: key must be owner/repo#number`);
     if (!["issue", "pr"].includes(item.kind)) errors.push(`ledger ${key}: kind must be issue or pr`);
     if (!["open", "closed", "merged"].includes(item.state)) errors.push(`ledger ${key}: state must be open, closed or merged`);
@@ -243,10 +269,35 @@ export function validateLedger(ledger, data) {
         errors.push(`ledger ${key}: excluded items need a one-line reason of 10-240 characters`);
     } else errors.push(`ledger ${key}: decision must be included or excluded`);
   }
+  // Every entry must be about something the user did, and its status must
+  // rest on the user's own part in it. Without this, a well-formed entry
+  // about someone else's repository (whose claims verify-claims would
+  // happily confirm) could pass every check that does not involve an AI.
+  const u = ledger.user;
+  const isObj = (ev) => ev && typeof ev === "object";
+  const userPr = (ev, test) => isObj(ev) && ev.type === "pr" && ev.author === u && test(ev);
+  const userRequest = (ev) => isObj(ev) && ((ev.type === "issue" && ev.author === u) || (ev.type === "discussion-answer" && ev.opener === u));
+  const userWrote = (ev) => userRequest(ev) || (isObj(ev) && (ev.type === "pr" || ev.type === "comment") && ev.author === u);
+  const resolution = (ev) =>
+    isObj(ev) &&
+    (["pr-fixes-issue", "commit", "release", "file", "discussion-answer"].includes(ev.type) ||
+      (ev.type === "comment" && ev.author !== u) ||
+      (ev.type === "pr" && ev.author !== u && ev.merged === true));
+  for (const e of entries) {
+    const evs = Array.isArray(e.evidence) ? e.evidence : [];
+    const where = `entry ${e.id}`;
+    if (!evs.some(userWrote)) errors.push(`${where}: no evidence shows ${u} opened, wrote or commented on anything`);
+    if (e.status === "merged" && !evs.some((ev) => userPr(ev, (x) => x.merged === true))) errors.push(`${where}: merged needs a merged pr opened by ${u}`);
+    if (e.status === "in-review" && !evs.some((ev) => userPr(ev, (x) => x.state === "open"))) errors.push(`${where}: in-review needs an open pr opened by ${u}`);
+    if (e.status === "credited" && !(evs.some((ev) => isObj(ev) && ev.type === "comment" && ev.author === u) && evs.some((ev) => isObj(ev) && ev.type === "comment" && ev.author !== u)))
+      errors.push(`${where}: credited needs a comment by ${u} and a comment by someone else`);
+    if (e.status === "shipped" && !(evs.some(userRequest) && evs.some(resolution)))
+      errors.push(`${where}: shipped needs an issue (or discussion) opened by ${u} and evidence that it was resolved`);
+  }
   // Every issue or PR the user authored that an entry relies on must be in
   // the ledger as included under that entry, so the two files cannot drift.
-  for (const e of data.entries ?? []) {
-    for (const ev of e.evidence ?? []) {
+  for (const e of entries) {
+    for (const ev of (e.evidence ?? []).filter(isObj)) {
       const authoredByUser = (ev.type === "issue" || ev.type === "pr") && ev.author === ledger.user;
       if (!authoredByUser) continue;
       const item = items[ledgerKey(ev.repo, ev.number)];
@@ -257,19 +308,35 @@ export function validateLedger(ledger, data) {
   }
   // A "this PR fixes that issue" claim only credits the user if the issue is
   // theirs, so the same entry must also prove they opened it.
-  for (const e of data.entries ?? []) {
-    for (const ev of e.evidence ?? []) {
+  for (const e of entries) {
+    for (const ev of (e.evidence ?? []).filter(isObj)) {
       if (ev.type !== "pr-fixes-issue") continue;
-      const own = (e.evidence ?? []).some((x) => x.type === "issue" && x.repo === ev.repo && x.number === ev.issue && x.author === ledger.user);
+      const own = (e.evidence ?? []).some((x) => isObj(x) && x.type === "issue" && x.repo === ev.repo && x.number === ev.issue && x.author === ledger.user);
       if (!own) errors.push(`entry ${e.id}: ${ev.repo}#${ev.number} fixes #${ev.issue}, but no issue evidence shows ${ledger.user} opened #${ev.issue}`);
     }
   }
   // And every included ledger item must be cited by its entry's evidence.
   for (const [key, item] of Object.entries(items)) {
-    if (item.decision !== "included") continue;
-    const entry = (data.entries ?? []).find((e) => e.id === item.entry);
-    const cited = entry?.evidence?.some((ev) => (ev.type === "issue" || ev.type === "pr") && ledgerKey(ev.repo, ev.number) === key);
+    if (item?.decision !== "included") continue;
+    const entry = entries.find((e) => e.id === item.entry);
+    const cited = entry?.evidence?.some((ev) => isObj(ev) && (ev.type === "issue" || ev.type === "pr") && ledgerKey(ev.repo, ev.number) === key);
     if (entry && !cited) errors.push(`ledger ${key}: included under ${item.entry} but that entry has no issue/pr evidence for it`);
+  }
+  return errors;
+}
+
+// What an automated update may not change in the ledger: whose contributions
+// these are, which accounts count as the user's own, and the record of any
+// item already decided (it can be re-decided, never dropped). The weekly
+// publish step checks the curator's ledger against main's with this.
+export function checkLedgerInvariants(base, head) {
+  const errors = [];
+  for (const field of ["$comment", "user", "excludeOwners"]) {
+    if (JSON.stringify(base?.[field]) !== JSON.stringify(head?.[field])) errors.push(`ledger.${field} must not change in an automated update`);
+  }
+  const headItems = head?.items ?? {};
+  for (const key of Object.keys(base?.items ?? {})) {
+    if (!(key in headItems)) errors.push(`ledger ${key}: removed; items may be re-decided but not deleted`);
   }
   return errors;
 }

@@ -19,8 +19,10 @@ import { parseInline, readJson } from "./lib.mjs";
 // A closing keyword followed by the issue reference, as GitHub itself
 // recognises them (https://docs.github.com/articles/closing-issues-using-keywords),
 // plus the "Resolves issue #N" phrasing some people write. HTML comments (PR
-// templates) are ignored, the keyword must start a word, and a negation just
-// before it ("does not fix #N") does not count.
+// templates) are ignored, the keyword must start a word, and a negation
+// anywhere earlier in the same clause ("doesn't really fix #N", "this is not
+// meant to close #N") does not count. That errs towards "no": a sentence like
+// "doesn't break anything and fixes #N" fails, which a person then rewords.
 export function referencesIssue(text, repo, issue) {
   if (!text) return false;
   const visible = text.replace(/<!--[\s\S]*?-->/g, " ");
@@ -31,8 +33,21 @@ export function referencesIssue(text, repo, issue) {
     "gi",
   );
   for (const m of visible.matchAll(re)) {
-    const before = visible.slice(Math.max(0, m.index - 12), m.index + m[1].length);
-    if (!/(\bnot|\bnever|n't)\s*$/i.test(before)) return true;
+    const upTo = visible.slice(0, m.index + m[1].length);
+    const clause = upTo.slice(Math.max(...[".", ";", ",", "!", "?", "\n", ":"].map((c) => upTo.lastIndexOf(c))) + 1);
+    if (!/(\bnot\b|\bnever\b|n't\b|\bno longer\b|\bwithout\b)/i.test(clause)) return true;
+  }
+  return false;
+}
+
+// `needle` occurs in `haystack`; a quote that ends in a number ("fixes #59",
+// "version 1.14.2") must not match the start of a longer one ("#595",
+// "1.14.25").
+export function containsQuote(haystack, needle) {
+  const text = String(haystack ?? "");
+  if (!/[0-9]$/.test(needle)) return text.includes(needle);
+  for (let i = text.indexOf(needle); i !== -1; i = text.indexOf(needle, i + 1)) {
+    if (!/[0-9]/.test(text[i + needle.length] ?? "")) return true;
   }
   return false;
 }
@@ -45,6 +60,8 @@ export async function checkEvidence(gh, ev) {
       if (!issue) return `${at}#${ev.number}: not found`;
       if (issue.pull_request) return `${at}#${ev.number}: is a pull request, not an issue`;
       if (issue.user?.login !== ev.author) return `${at}#${ev.number}: opened by ${issue.user?.login}, not ${ev.author}`;
+      if (ev.contains && !containsQuote(`${issue.title}\n${issue.body ?? ""}`, ev.contains))
+        return `${at}#${ev.number}: title/description does not contain ${JSON.stringify(ev.contains)}`;
       return null;
     }
     case "pr": {
@@ -54,7 +71,8 @@ export async function checkEvidence(gh, ev) {
       if (ev.merged === true && !pr.merged_at) return `${at}#${ev.number}: claimed merged but is not`;
       if (ev.merged === false && pr.merged_at) return `${at}#${ev.number}: claimed unmerged but it merged`;
       if (ev.state && pr.state !== ev.state) return `${at}#${ev.number}: claimed ${ev.state} but is ${pr.state}`;
-      if (ev.contains && !`${pr.title}\n${pr.body ?? ""}`.includes(ev.contains))
+      if (ev.base && pr.base?.ref !== ev.base) return `${at}#${ev.number}: targets ${pr.base?.ref}, not ${ev.base}`;
+      if (ev.contains && !containsQuote(`${pr.title}\n${pr.body ?? ""}`, ev.contains))
         return `${at}#${ev.number}: title/description does not contain ${JSON.stringify(ev.contains)}`;
       return null;
     }
@@ -69,32 +87,33 @@ export async function checkEvidence(gh, ev) {
     case "comment": {
       const comments = await gh.getAll(`/repos/${ev.repo}/issues/${ev.number}/comments`);
       if (!comments) return `${at}#${ev.number}: thread not found`;
-      const hit = comments.some((c) => c.user?.login === ev.author && (c.body ?? "").includes(ev.contains));
+      const hit = comments.some((c) => c.user?.login === ev.author && containsQuote(c.body, ev.contains));
       return hit ? null : `${at}#${ev.number}: no comment by ${ev.author} containing ${JSON.stringify(ev.contains)}`;
     }
     case "commit": {
       const commit = await gh.get(`/repos/${ev.repo}/commits/${ev.sha}`);
       if (!commit) return `${at}@${ev.sha.slice(0, 7)}: commit not found`;
-      return (commit.commit?.message ?? "").includes(ev.contains)
+      return containsQuote(commit.commit?.message, ev.contains)
         ? null
         : `${at}@${ev.sha.slice(0, 7)}: message does not contain ${JSON.stringify(ev.contains)}`;
     }
     case "release": {
       const rel = await gh.get(`/repos/${ev.repo}/releases/tags/${encodeURIComponent(ev.tag)}`);
       if (!rel) return `${at} ${ev.tag}: release not found`;
-      return (rel.body ?? "").includes(ev.contains) ? null : `${at} ${ev.tag}: notes do not contain ${JSON.stringify(ev.contains)}`;
+      return containsQuote(rel.body, ev.contains) ? null : `${at} ${ev.tag}: notes do not contain ${JSON.stringify(ev.contains)}`;
     }
     case "file": {
       const body = await gh.get(`/repos/${ev.repo}/contents/${ev.path.split("/").map(encodeURIComponent).join("/")}`, { raw: true });
       if (body === null) return `${at}/${ev.path}: file not found`;
-      return String(body).includes(ev.contains) ? null : `${at}/${ev.path}: does not contain ${JSON.stringify(ev.contains)}`;
+      return containsQuote(body, ev.contains) ? null : `${at}/${ev.path}: does not contain ${JSON.stringify(ev.contains)}`;
     }
     case "discussion-answer": {
       const d = await gh.discussionAnswer(ev.repo, ev.number);
       if (!d) return `${at} discussion ${ev.number}: not found`;
+      if (ev.opener && d.author?.login !== ev.opener) return `${at} discussion ${ev.number}: opened by ${d.author?.login}, not ${ev.opener}`;
       if (!d.answer) return `${at} discussion ${ev.number}: has no chosen answer`;
       if (d.answer.author?.login !== ev.author) return `${at} discussion ${ev.number}: answer is by ${d.answer.author?.login}, not ${ev.author}`;
-      return (d.answer.body ?? "").includes(ev.contains) ? null : `${at} discussion ${ev.number}: answer does not contain ${JSON.stringify(ev.contains)}`;
+      return containsQuote(d.answer.body, ev.contains) ? null : `${at} discussion ${ev.number}: answer does not contain ${JSON.stringify(ev.contains)}`;
     }
     default:
       return `unknown evidence type ${ev.type}`;

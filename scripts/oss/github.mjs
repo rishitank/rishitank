@@ -106,7 +106,7 @@ export function createClient({
     if (cache.has(key)) return cache.get(key);
     const [owner, name] = repo.split("/");
     const query =
-      "query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){discussion(number:$number){url answer{body author{login}}}}}";
+      "query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){discussion(number:$number){url author{login} answer{body author{login}}}}}";
     const res = await send(`${API}/graphql`, {
       method: "POST",
       headers: { ...headers, "Content-Type": "application/json" },
