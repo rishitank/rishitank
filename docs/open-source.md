@@ -56,8 +56,18 @@ did and something that shipped or merged:
 3. **A comment of mine** that the maintainer explicitly credited when closing
    the issue (the MCP TypeScript SDK entry is the only one today).
 
-Each entry's `status` says which: `merged`, `shipped`, `credited` or
-`in-review`, and validation checks that the evidence supports it.
+Each entry's `status` says which, and validation checks that the evidence
+supports it **and shows my part in it**:
+
+| status | needs evidence of |
+|---|---|
+| `merged` | a pull request I opened, merged |
+| `in-review` | a pull request I opened, still open |
+| `shipped` | an issue or discussion I opened, and its resolution: a fixing PR or commit, a release, a file such as a changelog, or a maintainer saying so |
+| `credited` | a comment of mine, and someone else's comment crediting it |
+
+So an entry can never be about work that has nothing to do with me, however
+true its claims are.
 
 The weekly scan **discovers** only issues and pull requests I opened. Comments
 and discussions still qualify, but have to be added by hand (or by asking the
@@ -77,7 +87,7 @@ configuration. These go in the ledger as `excluded`, with the reason.
 - Link the issue and/or PR numbers at the end in brackets.
 - Only `` `code` `` and `[label](https://github.com/...)` markup is allowed, and
   links may only point at a GitHub repository, issue, PR, discussion, release
-  or commit. Plain text may not contain `< > * _ ~ & @`, bare URLs or line
+  or commit. Plain text may not contain `< > * _ ~ & @ ! \`, bare URLs or line
   breaks. The validator enforces this so the README and the website render the
   same and nothing can inject HTML, images or mentions.
 
@@ -88,14 +98,17 @@ against the GitHub API on every PR and every week:
 
 | type | proves |
 |---|---|
-| `issue` | the issue exists and `author` opened it |
-| `pr` | the PR exists, `author` opened it, its `merged` / `state`, and optionally that its description contains `contains` |
+| `issue` | the issue exists, `author` opened it, and optionally that its title/description contains `contains` |
+| `pr` | the PR exists, `author` opened it, its `merged` / `state`, and optionally its target branch (`base`) and that its title/description contains `contains` |
 | `pr-fixes-issue` | the PR merged and its title/body closes `#issue` (which the same entry must show I opened) |
 | `comment` | `author` wrote a comment on the thread containing `contains` |
 | `commit` | the commit's message contains `contains` |
 | `release` | the release `tag`'s notes contain `contains` |
 | `file` | a file in the repo contains `contains` (e.g. a changelog) |
-| `discussion-answer` | the discussion's chosen answer is by `author` and contains `contains` |
+| `discussion-answer` | the discussion's chosen answer is by `author` and contains `contains`, and optionally that `opener` opened the discussion |
+
+Quotes are matched exactly; one that ends in a number must not run on into a
+longer one (`fixes #59` does not match `fixes #595`).
 
 `watch` asks the weekly scan to report when a release mentions something (for
 example `#2869`), so "merged" can become "shipped in vX" without anyone remembering.
@@ -123,12 +136,18 @@ Two repository secrets (Settings → Secrets and variables → Actions):
   opened with the built-in `GITHUB_TOKEN` do not trigger CI, so the gate would
   never run.
 
-Security notes: the agents get a read-only, job-scoped token and run with
-secrets scrubbed from their subprocesses; they can edit only the two data
-files and their summary, and run only the four commands named in the
-workflow. Validation rejects anything that looks like a credential in those
-files, and model-written text goes into the PR description inside a code
-fence, so it cannot mention people or close issues.
+Security notes:
+
+- The agents get a read-only, job-scoped token and run with secrets scrubbed
+  from their subprocesses. They can read files only inside the checkout (with
+  explicit denies for `/proc`, where their own environment holds the Claude
+  token, and the runner's temp folder), edit only the two data files and
+  their summary, and run only the four commands named in the workflow.
+- The publish step, which has no AI, refuses a ledger whose `user`,
+  `excludeOwners` or `$comment` changed or that lost an item, and refuses
+  anything model-written (data, summary, verdict) that looks like a credential.
+- Model-written text goes into the PR description inside a code fence, capped
+  in length, so it cannot mention people or close issues.
 
 Auto-merge relies on the account policy in `rishitank/.github` (the
 `review-gate` and `ci-gate` rulesets and "Allow auto-merge"). Until that is in

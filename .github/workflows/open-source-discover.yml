@@ -8,8 +8,10 @@
 #            anything is new or changed; verify-claims says whether anything
 #            already listed stopped being true. A quiet week stops here and
 #            costs no tokens.
-#   curate   Claude, read-only token. Its tools are reading files, editing the
-#            two data files and oss-summary.md (exact paths), and four exact
+#   curate   Claude, read-only token. Its tools are reading files inside the
+#            checkout (never /proc, where its own environment holds the
+#            Claude token, nor the runner's temp folder), editing the two
+#            data files and oss-summary.md (exact paths), and four exact
 #            commands: gh-read.mjs (read-only GitHub), sync-ledger, validate
 #            and verify-claims. Text it reads on GitHub is written by
 #            strangers, so the job can't push, comment or call any write API
@@ -18,10 +20,12 @@
 #   review   a second Claude with fresh context and no write tools at all. It
 #            re-reads the sources and returns a structured verdict.
 #   publish  no AI. A fresh checkout of main takes *only* the two data files
-#            from the curator (never its scripts, never its README), copies the
-#            scan's facts into the ledger, regenerates the README, runs the
-#            same checks as CI, opens the PR and either arms auto-merge or
-#            labels it needs-human-review.
+#            from the curator (never its scripts, never its README), checks
+#            the ledger still belongs to the same user and lost no items,
+#            copies the scan's facts into the ledger, regenerates the README,
+#            runs the same checks as CI plus a credential scan of everything
+#            model-written, opens the PR and either arms auto-merge or labels
+#            it needs-human-review.
 #
 # Secrets (both required; see docs/open-source.md):
 #   CLAUDE_CODE_OAUTH_TOKEN  from `claude setup-token` (Pro/Max plan)
@@ -164,6 +168,13 @@ jobs:
       - name: Curate the changes
         # Pinned to a commit: this action runs with the Claude token, so a
         # moved tag must not be able to change what it executes.
+        #
+        # File access: Read(./**) allows the checkout only (Glob and Grep
+        # follow the Read rules), and headless runs deny anything else. The
+        # explicit denies are belt and braces for the places that matter:
+        # /proc/<pid>/environ holds CLAUDE_CODE_OAUTH_TOKEN (the scrub only
+        # covers subprocesses), and the runner temp folder holds the job
+        # token file. Deny rules win over allow rules.
         uses: anthropics/claude-code-action@34968b5981d5d170904281aa3df6f3c0d4a28855 # v1.0.249
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -172,7 +183,8 @@ jobs:
             Follow .github/open-source/curator.md exactly. The scan results are in scan/.
           claude_args: >-
             --max-turns 120
-            --allowedTools "Read,Glob,Grep,Edit(data/open-source.json),Edit(data/open-source-ledger.json),Write(data/open-source.json),Write(data/open-source-ledger.json),Write(oss-summary.md),Bash(node scripts/oss/gh-read.mjs --thread *),Bash(node scripts/oss/gh-read.mjs --discussion *),Bash(node scripts/oss/gh-read.mjs /repos/*),Bash(node scripts/oss/gh-read.mjs --all /repos/*),Bash(node scripts/oss/sync-ledger.mjs scan/discovery.json),Bash(node scripts/oss/validate.mjs),Bash(node scripts/oss/verify-claims.mjs)"
+            --allowedTools "Read(./**),Glob,Grep,Edit(data/open-source.json),Edit(data/open-source-ledger.json),Write(data/open-source.json),Write(data/open-source-ledger.json),Write(oss-summary.md),Bash(node scripts/oss/gh-read.mjs --thread *),Bash(node scripts/oss/gh-read.mjs --discussion *),Bash(node scripts/oss/gh-read.mjs /repos/*),Bash(node scripts/oss/gh-read.mjs --all /repos/*),Bash(node scripts/oss/sync-ledger.mjs scan/discovery.json),Bash(node scripts/oss/validate.mjs),Bash(node scripts/oss/verify-claims.mjs)"
+            --disallowedTools "Read(//proc/**),Read(//sys/**),Read(//home/runner/work/_temp/**)"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -244,7 +256,8 @@ jobs:
             Follow .github/open-source/reviewer.md exactly. Your inputs are in review/.
           claude_args: >-
             --max-turns 80
-            --allowedTools "Read,Glob,Grep,Bash(node scripts/oss/gh-read.mjs --thread *),Bash(node scripts/oss/gh-read.mjs --discussion *),Bash(node scripts/oss/gh-read.mjs /repos/*),Bash(node scripts/oss/gh-read.mjs --all /repos/*)"
+            --allowedTools "Read(./**),Glob,Grep,Bash(node scripts/oss/gh-read.mjs --thread *),Bash(node scripts/oss/gh-read.mjs --discussion *),Bash(node scripts/oss/gh-read.mjs /repos/*),Bash(node scripts/oss/gh-read.mjs --all /repos/*)"
+            --disallowedTools "Read(//proc/**),Read(//sys/**),Read(//home/runner/work/_temp/**)"
             --json-schema '{"type":"object","additionalProperties":false,"required":["verdict","summary","findings"],"properties":{"verdict":{"type":"string","enum":["approve","needs-human-review"]},"summary":{"type":"string"},"findings":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["item","severity","note"],"properties":{"item":{"type":"string"},"severity":{"type":"string","enum":["blocker","nit"]},"note":{"type":"string"},"source":{"type":"string"}}}}}}'
 
       - name: Save the verdict
@@ -321,7 +334,10 @@ jobs:
           fi
 
       - name: Take only the two data files from the curator
-        run: cp curated/data/open-source.json curated/data/open-source-ledger.json data/
+        run: |
+          set -euo pipefail
+          cp data/open-source-ledger.json "$RUNNER_TEMP/base-ledger.json"
+          cp curated/data/open-source.json curated/data/open-source-ledger.json data/
 
       - name: Copy the scan's facts into the ledger
         run: node scripts/oss/sync-ledger.mjs scan/discovery.json
@@ -336,7 +352,9 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/*.test.mjs
-          node scripts/oss/validate.mjs
+          # Also: the ledger keeps main's user, owners and items, and nothing
+          # model-written that goes into the PR body looks like a credential.
+          node scripts/oss/validate.mjs --base-ledger "$RUNNER_TEMP/base-ledger.json" --scan curated/oss-summary.md verdict/verdict.json
           if node scripts/oss/verify-claims.mjs; then echo "verified=true" >> "$GITHUB_OUTPUT"; else echo "verified=false" >> "$GITHUB_OUTPUT"; fi
 
       - name: Anything to propose?
@@ -371,8 +389,11 @@ jobs:
           # that notify people, no "Fixes #N" that closes issues, and no links
           # that add "mentioned this" entries to maintainers' threads.
           # The fence is ten tildes and any run of four or more inside the
-          # text is shortened, so the text can never close it early.
-          fence() { sed -E 's/~{4,}/~~~/g'; }
+          # text is shortened, so the text can never close it early. Each
+          # block is capped at 150 lines of 1,000 characters; awk reads to the
+          # end, so the writer never gets SIGPIPE (which pipefail would turn
+          # into a failed step).
+          fence() { sed -E 's/~{4,}/~~~/g' | awk 'NR <= 150 { print substr($0, 1, 1000) }'; }
           {
             echo "Weekly update to the open-source list, proposed by [this run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
             echo

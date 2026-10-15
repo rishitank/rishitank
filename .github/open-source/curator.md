@@ -50,13 +50,15 @@ For each `new` and `changed` item:
      the text claims (e.g. "fixed in v2.6.4" needs a `release` or `comment`
      piece that says so). Copy `contains` strings **exactly** from the source,
      character for character, short but unambiguous (6–160 characters).
-     Set `status` to `merged` (a PR merged), `shipped` (a maintainer, commit
-     or release says it shipped), `credited` (a maintainer credited the
-     user's comment) or `in-review` (the user's PR is open); validation checks
-     that the evidence supports it.
+     Set `status` to `merged` (the user's own PR merged), `shipped` (the
+     user's issue or discussion was resolved: a fixing PR or commit, a
+     release, or a maintainer saying it shipped), `credited` (a maintainer
+     credited the user's comment) or `in-review` (the user's PR is open);
+     validation checks that the evidence supports it and shows the user's
+     part (see the status table in `docs/open-source.md`).
    - Entry text follows the Wording rules and the markup rules: plain text,
      `` `code` `` and `[label](https://github.com/...)` links only. Plain text
-     may not contain `< > * _ ~ & @`, bare URLs or line breaks; put such
+     may not contain `< > * _ ~ & @ ! \`, bare URLs or line breaks; put such
      things in `code` or leave them out.
    - **excluded**: one-line `reason` saying why (no reply, closed without a fix,
      my own config, not planned, only an unlinked changelog match, ...).
@@ -65,7 +67,8 @@ For each `new` and `changed` item:
 3. In the ledger, set only `decision` and `entry` (included) or `reason`
    (excluded) for that key. Do **not** edit `kind`, `state` or `updatedAt`;
    a later step copies those from the scan. For a `new` key, create the item
-   with just the decision fields.
+   with just the decision fields. Never change `user`, `excludeOwners` or
+   `$comment`, and never delete an item; the publish step rejects both.
 
 For each `watch` hit: update that entry's text to the shipped version if the
 release clearly contains the change, add a `release` evidence piece, and remove
