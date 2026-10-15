@@ -53,7 +53,7 @@ Upstream issues, proposals and fixes that maintainers shipped:
 - **claude-code-lsps**: merged a Java language-server (jdtls) reliability fix ([#73](https://github.com/Piebald-AI/claude-code-lsps/pull/73)); my request added Scala (Metals) support ([#54](https://github.com/Piebald-AI/claude-code-lsps/issues/54))
 - **DBCode**: requested Redshift Spectrum support, shipped in 1.14.24, then caught the regression fixed in 1.14.25 ([#613](https://github.com/dbcodeio/public/issues/613), [#644](https://github.com/dbcodeio/public/issues/644))
 - **stylelint-stylistic**: reported styled-components indentation bugs, fixed in v3.1 and v3.1.1 ([#39](https://github.com/stylelint-stylistic/stylelint-stylistic/issues/39))
-- **Redoc**: built XML and CSV response examples for Adthena's public API docs, first raised upstream in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later requested by other developers. CSV is now merged into Redoc v3 ([#2869](https://github.com/Redocly/redoc/pull/2869)); my XML sample fixes for openapi-sampler are in review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))
+- **Redoc**: built XML and CSV response examples for Adthena's public API docs, first raised upstream in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later requested by other developers. CSV is now merged into Redoc v3, due in its next release ([#2869](https://github.com/Redocly/redoc/pull/2869)); my XML sample fixes for openapi-sampler are in review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))
 
 ## How I work
 
