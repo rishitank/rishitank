@@ -28,7 +28,7 @@ The whole map, with what each piece honestly is not: [rishitank.co.uk/robustness
 
 - **News Brief**: when the switch to Gemini broke Google's spoken news briefing on my phone, I rebuilt
   it on my own Google Cloud. A Cloud Run job stitches the short bulletins I choose into one spoken brief
-  of only what's new since I last listened, published as a private podcast that I play daily. Each show
+  that skips editions I've already played, published as a private podcast that I listen to daily. Each show
   has a fallback chain, builds that change nothing publish nothing, and deploys are keyless through
   Workload Identity Federation. Designed by me, built by directing AI coding agents; source private for now.
 - [**PreviewProof**](https://preview-proof.lovable.app): paste a URL and see the Google, X, LinkedIn,
