@@ -13,9 +13,11 @@ import { allowedPath, thread } from "../scripts/oss/gh-read.mjs";
 import { createClient, retryDelay } from "../scripts/oss/github.mjs";
 import {
   applySection,
+  checkLedgerInvariants,
   END_MARKER,
   findSecrets,
   GITHUB_URL_RE,
+  MAX_ENTRIES,
   parseInline,
   readJson,
   renderSection,
@@ -24,7 +26,7 @@ import {
   validateLedger,
 } from "../scripts/oss/lib.mjs";
 import { syncLedger } from "../scripts/oss/sync-ledger.mjs";
-import { checkEvidence, checkLink, referencesIssue, verifyAll } from "../scripts/oss/verify-claims.mjs";
+import { checkEvidence, checkLink, containsQuote, referencesIssue, verifyAll } from "../scripts/oss/verify-claims.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const data = readJson(path.join(root, "data/open-source.json"));
@@ -99,6 +101,11 @@ test("parseInline rejects markup, off-site links and broken syntax outside code"
     "a ] b",
     "two\nlines",
     `rtl ${String.fromCodePoint(0x202e)} override`,
+    `code \`a${String.fromCodePoint(0x202e)}b\` span`,
+    "see ![x](https://github.com/o/r)",
+    "wow!",
+    "a \\`b` c",
+    "a \\[x](https://github.com/o/r)",
   ];
   for (const s of bad) assert.throws(() => parseInline(s), undefined, JSON.stringify(s));
 });
@@ -125,6 +132,13 @@ test("validateData validates the heading and project as plain text", () => {
   assert.ok(hasError(validateData({ heading: "x".repeat(200), entries: [entry()] }), "heading"));
   assert.ok(hasError(errorsFor(entry({ project: "Demo\n\n## Pwned" })), "project"));
   assert.ok(hasError(errorsFor(entry({ project: "<b>x</b>" })), "project"));
+  assert.ok(hasError(validateData({ heading: "see `x`", entries: [entry()] }), "must not contain [, ] or a backtick"));
+});
+
+test("validateData caps the list at the size the portfolio accepts", () => {
+  const many = Array.from({ length: MAX_ENTRIES + 1 }, (_, i) => entry({ id: `e${i}`, url: `https://github.com/o/r/issues/${i + 1}`, text: `x ([#${i + 1}](https://github.com/o/r/issues/${i + 1}))` }));
+  assert.ok(hasError(validateData(dataWith(...many)), `at most ${MAX_ENTRIES} entries`));
+  assert.ok(!hasError(validateData(dataWith(...many.slice(1))), "at most"));
 });
 
 test("validateData requires the card url to be one of the text links", () => {
@@ -155,9 +169,12 @@ test("validateData checks evidence fields per type", () => {
     { type: "pr", repo: "bad repo", number: 1, author: "a", merged: "yes" },
     { type: "pr", repo: "o/r", number: 1, author: "a", state: "merged" },
     { type: "file", repo: "o/r", path: "/etc/passwd", contains: "root:x:0" },
+    { type: "issue", repo: "o/r", number: 1, author: "a", contains: "x" },
+    { type: "pr", repo: "o/r", number: 1, author: "a", base: "main; rm -rf" },
+    { type: "discussion-answer", repo: "o/r", number: 1, author: "a", contains: "added in 2.0", opener: "" },
   ];
   const errs = errorsFor(entry({ evidence: bad }));
-  for (const want of ["unknown evidence type", "full 40-character", "issue must be", "tag is required", "bad repo", "merged must be a boolean", "state must be open or closed", "path is required"])
+  for (const want of ["unknown evidence type", "full 40-character", "issue must be", "tag is required", "bad repo", "merged must be a boolean", "state must be open or closed", "path is required", "evidence[7]: contains must be", "base must be a branch name", "opener must be"])
     assert.ok(hasError(errs, want), want);
 });
 
@@ -219,7 +236,7 @@ test("validateLedger catches drift between ledger and entries", () => {
 
 test("validateLedger requires pr-fixes-issue to fix an issue the user opened", () => {
   const e = entry({
-    status: "merged",
+    status: "shipped",
     evidence: [
       { type: "issue", repo: "o/r", number: 1, author: "me" },
       { type: "pr-fixes-issue", repo: "o/r", number: 5, issue: 7 },
@@ -229,6 +246,52 @@ test("validateLedger requires pr-fixes-issue to fix an issue the user opened", (
   assert.ok(hasError(validateLedger(l, dataWith(e)), "fixes #7, but no issue evidence shows me opened #7"));
   e.evidence[1].issue = 1;
   assert.deepEqual(validateLedger(l, dataWith(e)), []);
+});
+
+test("validateLedger requires every entry, and its status, to rest on the user's own part", () => {
+  const ledgerFor = (...keys) => ({ user: "me", excludeOwners: [], items: Object.fromEntries(keys.map((k) => [k, item({ decision: "included", entry: "demo" })])) });
+  const check = (e, ...keys) => validateLedger(ledgerFor(...keys), dataWith(entry(e)));
+
+  // Someone else's repository, with evidence that is true but not about the user.
+  const stranger = { url: "https://github.com/x/y", text: "x ([y](https://github.com/x/y))", evidence: [{ type: "commit", repo: "x/y", sha: "a".repeat(40), contains: "anything at all" }] };
+  assert.ok(hasError(check(stranger), "no evidence shows me opened"));
+
+  // merged: the merged PR must be the user's own.
+  const theirs = { status: "merged", evidence: [{ type: "issue", repo: "o/r", number: 1, author: "me" }, { type: "pr", repo: "o/r", number: 2, author: "them", merged: true }] };
+  assert.ok(hasError(check(theirs, "o/r#1"), "merged needs a merged pr opened by me"));
+  const mine = { status: "merged", evidence: [{ type: "pr", repo: "o/r", number: 1, author: "me", merged: true }] };
+  assert.deepEqual(check(mine, "o/r#1"), []);
+
+  // in-review: an open PR of the user's.
+  assert.ok(hasError(check({ status: "in-review", evidence: [{ type: "pr", repo: "o/r", number: 1, author: "them", state: "open" }, { type: "issue", repo: "o/r", number: 2, author: "me" }] }, "o/r#2"), "in-review needs"));
+
+  // credited: the user's comment and someone else's.
+  const onlyMine = { status: "credited", evidence: [{ type: "comment", repo: "o/r", number: 1, author: "me", contains: "use --init" }] };
+  assert.ok(hasError(check(onlyMine), "credited needs a comment by me and a comment by someone else"));
+  onlyMine.evidence.push({ type: "comment", repo: "o/r", number: 1, author: "maint", contains: "thanks, resolved" });
+  assert.deepEqual(check(onlyMine), []);
+
+  // shipped: the user's request and evidence it was resolved; the user's own
+  // comment alone is not a resolution.
+  const selfResolved = { evidence: [{ type: "issue", repo: "o/r", number: 1, author: "me" }, { type: "comment", repo: "o/r", number: 1, author: "me", contains: "released in 1.2.3" }] };
+  assert.ok(hasError(check(selfResolved, "o/r#1"), "shipped needs"));
+  const onlyCommented = { evidence: [{ type: "comment", repo: "o/r", number: 1, author: "me", contains: "+1 from me" }, { type: "comment", repo: "o/r", number: 1, author: "maint", contains: "released in 1.2.3" }] };
+  assert.ok(hasError(check(onlyCommented), "shipped needs an issue (or discussion) opened by me"), "commenting on someone else's request is not a request");
+  const viaDiscussion = { evidence: [{ type: "discussion-answer", repo: "o/r", number: 3, author: "maint", opener: "me", contains: "added in 2.0" }] };
+  assert.deepEqual(check(viaDiscussion), []);
+});
+
+test("checkLedgerInvariants stops an update changing whose list it is or dropping items", () => {
+  const base = { $comment: "c", user: "me", excludeOwners: ["me"], items: { "o/r#1": {}, "o/r#2": {} } };
+  assert.deepEqual(checkLedgerInvariants(base, structuredClone(base)), []);
+  const head = { ...structuredClone(base), user: "attacker", excludeOwners: [], items: { "o/r#1": {}, "o/r#3": {} } };
+  const errs = checkLedgerInvariants(base, head);
+  for (const want of ["ledger.user", "ledger.excludeOwners", "o/r#2: removed"]) assert.ok(hasError(errs, want), want);
+  assert.ok(!hasError(errs, "o/r#3"), "adding items is fine");
+});
+
+test("validateLedger reports a null item instead of throwing", () => {
+  assert.ok(hasError(validateLedger({ user: "me", excludeOwners: [], items: { "o/r#1": null } }, dataWith()), "o/r#1: must be an object"));
 });
 
 // ---------------------------------------------------------------- rendering
@@ -399,26 +462,40 @@ function fakeGitHub(fixtures) {
 test("referencesIssue matches closing keywords, not negations, templates or other numbers", () => {
   for (const ok of ["Fixes #51", "fixes: #51", "Resolves issue #51", "Closes o/r#51", "resolved https://github.com/o/r/issues/51", "This PR fixes #51.", "Notes: fixes #51"])
     assert.ok(referencesIssue(ok, "o/r", 51), ok);
-  for (const no of ["See #51", "Fixes #510", "Fixes #5", "prefixes #51", "pre-fixes #51", "Does not fix #51", "won't fix #51", "<!-- Fixes #51 -->", "Fixes other/repo#51"])
+  for (const no of ["See #51", "Fixes #510", "Fixes #5", "prefixes #51", "pre-fixes #51", "Does not fix #51", "won't fix #51", "<!-- Fixes #51 -->", "Fixes other/repo#51", "This PR doesn't really fix #51", "This is not meant to close #51", "no longer fixes #51"])
     assert.ok(!referencesIssue(no, "o/r", 51), no);
+  assert.ok(referencesIssue("This doesn't touch the API. Fixes #51", "o/r", 51), "a negation in an earlier sentence does not count");
+});
+
+test("containsQuote: a quote ending in a number does not match a longer number", () => {
+  assert.ok(containsQuote("fixes #595 for real", "fixes #595"));
+  assert.ok(containsQuote("fixes #595", "fixes #595"));
+  assert.ok(!containsQuote("fixes #5951", "fixes #595"));
+  assert.ok(containsQuote("fixes #5951 and fixes #595.", "fixes #595"), "a later exact occurrence still counts");
+  assert.ok(!containsQuote("released 1.14.25", "released 1.14.2"));
+  assert.ok(containsQuote("version 2.3.0 has been released", "has been released"));
+  assert.ok(!containsQuote(undefined, "anything"));
 });
 
 test("checkEvidence passes true claims and explains false ones", async () => {
   const gh = fakeGitHub({
     "/repos/o/r/issues/1": { user: { login: "me" } },
     "/repos/o/r/issues/2": { user: { login: "me" }, pull_request: {} },
-    "/repos/o/r/pulls/3": { user: { login: "me" }, merged_at: null, state: "open", title: "t", body: "built for Example Ltd" },
+    "/repos/o/r/issues/10": { user: { login: "me" }, title: "Regression", body: "after updating to 1.14.24, it fails" },
+    "/repos/o/r/pulls/3": { user: { login: "me" }, merged_at: null, state: "open", title: "t", body: "built for Example Ltd", base: { ref: "main" } },
     "/repos/o/r/pulls/4": { user: { login: "them" }, merged_at: "2026-01-01", state: "closed", title: "feat", body: "Fixes #1" },
     "/repos/o/r/issues/1/comments": [{ user: { login: "maint" }, body: "Released in 1.2.3, thanks" }],
     ["/repos/o/r/commits/" + "a".repeat(40)]: { commit: { message: "fix #1 the thing" } },
     "/repos/o/r/releases/tags/v1": { body: "- thing (requested by @me)" },
     "/repos/o/r/contents/CHANGELOG.md": "## 2.0\n- closes #1",
-    "discussion:o/r#5": { answer: { author: { login: "maint" }, body: "added in 2.0" } },
+    "discussion:o/r#5": { author: { login: "me" }, answer: { author: { login: "maint" }, body: "added in 2.0" } },
     "discussion:o/r#6": { answer: null },
   });
   const ok = [
     { type: "issue", repo: "o/r", number: 1, author: "me" },
-    { type: "pr", repo: "o/r", number: 3, author: "me", merged: false, state: "open", contains: "built for Example Ltd" },
+    { type: "issue", repo: "o/r", number: 10, author: "me", contains: "after updating to 1.14.24" },
+    { type: "pr", repo: "o/r", number: 3, author: "me", merged: false, state: "open", contains: "built for Example Ltd", base: "main" },
+    { type: "discussion-answer", repo: "o/r", number: 5, author: "maint", opener: "me", contains: "added in 2.0" },
     { type: "pr-fixes-issue", repo: "o/r", number: 4, issue: 1 },
     { type: "comment", repo: "o/r", number: 1, author: "maint", contains: "Released in 1.2.3" },
     { type: "commit", repo: "o/r", sha: "a".repeat(40), contains: "fix #1" },
@@ -436,6 +513,9 @@ test("checkEvidence passes true claims and explains false ones", async () => {
     [{ type: "pr", repo: "o/r", number: 4, author: "them", merged: false }, /claimed unmerged/],
     [{ type: "pr", repo: "o/r", number: 3, author: "me", state: "closed" }, /claimed closed but is open/],
     [{ type: "pr", repo: "o/r", number: 3, author: "me", contains: "built for Acme" }, /does not contain/],
+    [{ type: "pr", repo: "o/r", number: 3, author: "me", base: "v3" }, /targets main, not v3/],
+    [{ type: "issue", repo: "o/r", number: 10, author: "me", contains: "after updating to 1.14.2" }, /does not contain/],
+    [{ type: "discussion-answer", repo: "o/r", number: 5, author: "maint", opener: "you", contains: "added in 2.0" }, /opened by me, not you/],
     [{ type: "pr", repo: "o/r", number: 4, author: "me" }, /opened by them/],
     [{ type: "pr-fixes-issue", repo: "o/r", number: 4, issue: 2 }, /does not say it fixes/],
     [{ type: "pr-fixes-issue", repo: "o/r", number: 3, issue: 1 }, /not merged/],
