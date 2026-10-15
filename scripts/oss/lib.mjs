@@ -42,7 +42,11 @@ const MAX_TEXT = 420;
 const MAX_PLAIN = 120;
 // Outside `code`, these would be markup in GitHub Markdown (HTML, emphasis,
 // strikethrough, entities, bare autolinks, @mentions) or break a list item.
-const FORBIDDEN_PLAIN = /[<>*_~&@\]\n\r\t‪-‮⁦-⁩]|https?:\/\/|www\./i;
+const FORBIDDEN_PLAIN = /[<>*_~&@\]\n\r\t]|https?:\/\/|www\./i;
+// Bidirectional-override and isolate controls (U+202A-202E, U+2066-2069)
+// can make text display differently from what it says. Checked by code point
+// so the source itself never contains them.
+const isBidiControl = (cp) => (cp >= 0x202a && cp <= 0x202e) || (cp >= 0x2066 && cp <= 0x2069);
 
 export function readJson(path) {
   return JSON.parse(fs.readFileSync(path, "utf8"));
@@ -61,6 +65,9 @@ export function readJson(path) {
 export function checkPlain(text, what = "text") {
   const m = FORBIDDEN_PLAIN.exec(text);
   if (m) throw new Error(`${what} contains ${JSON.stringify(m[0])}, which is not allowed outside \`code\``);
+  for (const ch of text) {
+    if (isBidiControl(ch.codePointAt(0))) throw new Error(`${what} contains a bidirectional control character`);
+  }
 }
 
 export function parseInline(text) {
