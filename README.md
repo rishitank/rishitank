@@ -24,8 +24,13 @@ owned and run by [Tankster AI](https://github.com/TanksterAI), the studio I foun
 
 The whole map, with what each piece honestly is not: [rishitank.co.uk/robustness-layer](https://rishitank.co.uk/robustness-layer).
 
-## Product side project
+## Side projects
 
+- **News Brief**: when the switch to Gemini broke Google's spoken news briefing on my phone, I rebuilt
+  it on my own Google Cloud. A Cloud Run job stitches the short bulletins I choose into one spoken brief
+  of only what's new since I last listened, published as a private podcast that I play daily. Each show
+  has a fallback chain, builds that change nothing publish nothing, and deploys are keyless through
+  Workload Identity Federation. Designed by me, built by directing AI coding agents; source private for now.
 - [**PreviewProof**](https://preview-proof.lovable.app): paste a URL and see the Google, X, LinkedIn,
   Slack and WhatsApp previews it really produces, with a copy-paste fix for each problem. Built in
   Lovable, then hardened through its GitHub sync: an SSRF-resistant fetcher, unit and
