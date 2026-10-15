@@ -1,0 +1,57 @@
+# The gate for every change to this repository: the open-source list's tests,
+# its data/ledger validation, the README block being in step with the data,
+# and every claim in the data re-checked against the live GitHub API.
+#
+# The job is called `ci-gate` on purpose: rishitank/.github's account policy
+# turns the `ci-gate` ruleset on for any public repository that publishes a
+# job with that name, and only arms auto-merge where one exists. So this one
+# job is the CI contract for the profile repository.
+#
+# Zero dependencies: Node's built-in test runner, fetch and nothing from npm,
+# so there is no lockfile to keep current and nothing to install.
+name: open-source
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: open-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-gate:
+    name: ci-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - name: Unit tests (no network)
+        run: node --test tests/*.test.mjs
+
+      - name: Data file and ledger
+        run: node scripts/oss/validate.mjs
+
+      - name: README block matches the data file
+        run: node scripts/oss/render-readme.mjs --check
+
+      - name: Every claim is still true on GitHub
+        # Read-only calls to public repositories. A failure here on a PR that
+        # did not touch data/ means something changed upstream (a comment was
+        # edited, a release renamed); the weekly job will propose a fix.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/oss/verify-claims.mjs
