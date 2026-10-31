@@ -52,7 +52,7 @@ The whole map, with what each piece honestly is not: [rishitank.co.uk/robustness
 
 Upstream issues, proposals and fixes, each backed by a linked issue or pull request:
 
-- **Redoc**: built XML and CSV response examples for Adthena's API docs, first proposed in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later backed by another developer. CSV support is merged for the next release ([#2869](https://github.com/Redocly/redoc/pull/2869)), and my XML fixes to openapi-sampler were merged after review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))
+- **Redoc**: built XML and CSV response examples for Adthena's API docs, first proposed in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later backed by other developers. CSV support is merged for the next release ([#2869](https://github.com/Redocly/redoc/pull/2869)), and my XML fixes to openapi-sampler were merged after review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))
 - **claude-code-lsps**: had a Java language-server (jdtls) reliability fix merged ([#73](https://github.com/Piebald-AI/claude-code-lsps/pull/73)); my request led to Scala (Metals) support ([#54](https://github.com/Piebald-AI/claude-code-lsps/issues/54)), and my diagnosis of why it would not load got it fixed ([#56](https://github.com/Piebald-AI/claude-code-lsps/issues/56))
 - **GitHub Copilot CLI**: proposed repo-specific MCP configs, shipped as the repeatable `--additional-mcp-config` flag ([#288](https://github.com/github/copilot-cli/issues/288))
 - **MCP TypeScript SDK**: my `docker run --init` workaround for orphaned MCP containers was credited by the maintainer when closing the issue ([#547](https://github.com/modelcontextprotocol/typescript-sdk/issues/547))

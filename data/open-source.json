@@ -7,10 +7,11 @@
       "project": "Redoc",
       "url": "https://github.com/Redocly/redoc/pull/2869",
       "status": "merged",
-      "text": "built XML and CSV response examples for Adthena's API docs, first proposed in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later backed by another developer. CSV support is merged for the next release ([#2869](https://github.com/Redocly/redoc/pull/2869)), and my XML fixes to openapi-sampler were merged after review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))",
+      "text": "built XML and CSV response examples for Adthena's API docs, first proposed in 2023 ([#2347](https://github.com/Redocly/redoc/pull/2347)) and later backed by other developers. CSV support is merged for the next release ([#2869](https://github.com/Redocly/redoc/pull/2869)), and my XML fixes to openapi-sampler were merged after review ([#223](https://github.com/Redocly/openapi-sampler/pull/223))",
       "evidence": [
         { "type": "pr", "repo": "Redocly/redoc", "number": 2347, "author": "rishitank", "merged": false, "contains": "As part of implementing api-docs at Adthena" },
         { "type": "comment", "repo": "Redocly/redoc", "number": 2347, "author": "LeWolOnline", "contains": "I'm experiencing the same issue it solves" },
+        { "type": "comment", "repo": "Redocly/redoc", "number": 2347, "author": "ndmitrys", "contains": "Oh, I'm experiencing the same issue" },
         { "type": "pr", "repo": "Redocly/redoc", "number": 2869, "author": "rishitank", "merged": true, "base": "main" },
         { "type": "comment", "repo": "Redocly/redoc", "number": 2869, "author": "makare11a", "contains": "The changes will be available in the next release" },
         { "type": "pr", "repo": "Redocly/openapi-sampler", "number": 223, "author": "rishitank", "merged": true, "base": "main" },
