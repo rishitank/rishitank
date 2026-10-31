@@ -372,8 +372,8 @@
     },
     "Redocly/openapi-sampler#223": {
       "kind": "pr",
-      "state": "open",
-      "updatedAt": "2026-10-14T23:13:25Z",
+      "state": "merged",
+      "updatedAt": "2026-10-28T15:11:58Z",
       "decision": "included",
       "entry": "redoc"
     },
