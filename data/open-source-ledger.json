@@ -372,8 +372,8 @@
     },
     "Redocly/openapi-sampler#223": {
       "kind": "pr",
-      "state": "open",
-      "updatedAt": "2026-10-14T23:13:25Z",
+      "state": "merged",
+      "updatedAt": "2026-10-28T15:11:58Z",
       "decision": "included",
       "entry": "redoc"
     },
@@ -480,7 +480,7 @@
       "state": "closed",
       "updatedAt": "2019-03-14T10:56:21Z",
       "decision": "excluded",
-      "reason": "Resolved by a change to my own config."
+      "reason": "Expected behaviour in css-loader 2 (breaking change)."
     },
     "yairEO/tagify#595": {
       "kind": "issue",
