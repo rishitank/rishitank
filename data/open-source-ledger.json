@@ -480,7 +480,7 @@
       "state": "closed",
       "updatedAt": "2019-03-14T10:56:21Z",
       "decision": "excluded",
-      "reason": "Expected behaviour in css-loader 2 (breaking change)."
+      "reason": "Resolved by a change to my own config."
     },
     "yairEO/tagify#595": {
       "kind": "issue",
