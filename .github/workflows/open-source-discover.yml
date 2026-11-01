@@ -186,6 +186,21 @@ jobs:
             --allowedTools "Read(./**),Glob,Grep,Edit(data/open-source.json),Edit(data/open-source-ledger.json),Write(data/open-source.json),Write(data/open-source-ledger.json),Write(oss-summary.md),Bash(node scripts/oss/gh-read.mjs --thread *),Bash(node scripts/oss/gh-read.mjs --discussion *),Bash(node scripts/oss/gh-read.mjs /repos/*),Bash(node scripts/oss/gh-read.mjs --all /repos/*),Bash(node scripts/oss/sync-ledger.mjs scan/discovery.json),Bash(node scripts/oss/validate.mjs),Bash(node scripts/oss/verify-claims.mjs)"
             --disallowedTools "Read(//proc/**),Read(//sys/**),Read(//home/runner/work/_temp/**)"
 
+      - name: Say why the curator failed
+        # The action logs only a summary of Claude's result (is_error, turns,
+        # cost), never its message, so a run that fails at once says nothing
+        # about why (26 Oct: is_error after 457 ms, no model usage). Print the
+        # result message alone, cut to 300 characters. Workflow commands are
+        # stopped around it, so model- or API-written text can't issue any.
+        if: failure()
+        run: |
+          f="$RUNNER_TEMP/claude-execution-output.json"
+          if [ ! -s "$f" ]; then echo "No execution file; the action failed before Claude ran."; exit 0; fi
+          stop="$(openssl rand -hex 16)"
+          echo "::stop-commands::$stop"
+          jq -r '[.[] | select(.type == "result")] | last // {} | "Curator result: \(.result // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
+          echo "::$stop::"
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: curated
@@ -259,6 +274,21 @@ jobs:
             --allowedTools "Read(./**),Glob,Grep,Bash(node scripts/oss/gh-read.mjs --thread *),Bash(node scripts/oss/gh-read.mjs --discussion *),Bash(node scripts/oss/gh-read.mjs /repos/*),Bash(node scripts/oss/gh-read.mjs --all /repos/*)"
             --disallowedTools "Read(//proc/**),Read(//sys/**),Read(//home/runner/work/_temp/**)"
             --json-schema '{"type":"object","additionalProperties":false,"required":["verdict","summary","findings"],"properties":{"verdict":{"type":"string","enum":["approve","needs-human-review"]},"summary":{"type":"string"},"findings":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["item","severity","note"],"properties":{"item":{"type":"string"},"severity":{"type":"string","enum":["blocker","nit"]},"note":{"type":"string"},"source":{"type":"string"}}}}}}'
+
+      - name: Say why the reviewer failed
+        # The action logs only a summary of Claude's result (is_error, turns,
+        # cost), never its message, so a run that fails at once says nothing
+        # about why (26 Oct: is_error after 457 ms, no model usage). Print the
+        # result message alone, cut to 300 characters. Workflow commands are
+        # stopped around it, so model- or API-written text can't issue any.
+        if: failure()
+        run: |
+          f="$RUNNER_TEMP/claude-execution-output.json"
+          if [ ! -s "$f" ]; then echo "No execution file; the action failed before Claude ran."; exit 0; fi
+          stop="$(openssl rand -hex 16)"
+          echo "::stop-commands::$stop"
+          jq -r '[.[] | select(.type == "result")] | last // {} | "Reviewer result: \(.result // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
+          echo "::$stop::"
 
       - name: Save the verdict
         env:
