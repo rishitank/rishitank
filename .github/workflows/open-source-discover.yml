@@ -166,6 +166,7 @@ jobs:
           echo "OSS_READ_TOKEN_FILE=$RUNNER_TEMP/oss-read-token" >> "$GITHUB_ENV"
 
       - name: Curate the changes
+        id: curate
         # Pinned to a commit: this action runs with the Claude token, so a
         # moved tag must not be able to change what it executes.
         #
@@ -190,15 +191,16 @@ jobs:
         # The action logs only a summary of Claude's result (is_error, turns,
         # cost), never its message, so a run that fails at once says nothing
         # about why (26 Oct: is_error after 457 ms, no model usage). Print the
-        # result message alone, cut to 300 characters. Workflow commands are
+        # result message alone (or the error subtypes' errors list, which
+        # carry no result text), cut to 300 characters. Workflow commands are
         # stopped around it, so model- or API-written text can't issue any.
-        if: failure()
+        if: failure() && steps.curate.outcome == 'failure'
         run: |
           f="$RUNNER_TEMP/claude-execution-output.json"
           if [ ! -s "$f" ]; then echo "No execution file; the action failed before Claude ran."; exit 0; fi
           stop="$(openssl rand -hex 16)"
           echo "::stop-commands::$stop"
-          jq -r '[.[] | select(.type == "result")] | last // {} | "Curator result: \(.result // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
+          jq -r '[.[] | select(.type == "result")] | last // {} | "Curator result (\(.subtype // "none"), HTTP \(.api_error_status // "-")): \(.result // (.errors // [] | join("; ") | select(. != "")) // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
           echo "::$stop::"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -279,15 +281,16 @@ jobs:
         # The action logs only a summary of Claude's result (is_error, turns,
         # cost), never its message, so a run that fails at once says nothing
         # about why (26 Oct: is_error after 457 ms, no model usage). Print the
-        # result message alone, cut to 300 characters. Workflow commands are
+        # result message alone (or the error subtypes' errors list, which
+        # carry no result text), cut to 300 characters. Workflow commands are
         # stopped around it, so model- or API-written text can't issue any.
-        if: failure()
+        if: failure() && steps.claude.outcome == 'failure'
         run: |
           f="$RUNNER_TEMP/claude-execution-output.json"
           if [ ! -s "$f" ]; then echo "No execution file; the action failed before Claude ran."; exit 0; fi
           stop="$(openssl rand -hex 16)"
           echo "::stop-commands::$stop"
-          jq -r '[.[] | select(.type == "result")] | last // {} | "Reviewer result: \(.result // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
+          jq -r '[.[] | select(.type == "result")] | last // {} | "Reviewer result (\(.subtype // "none"), HTTP \(.api_error_status // "-")): \(.result // (.errors // [] | join("; ") | select(. != "")) // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
           echo "::$stop::"
 
       - name: Save the verdict
