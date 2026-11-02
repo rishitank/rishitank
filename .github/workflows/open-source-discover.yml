@@ -200,7 +200,7 @@ jobs:
           if [ ! -s "$f" ]; then echo "No execution file; the action failed before Claude ran."; exit 0; fi
           stop="$(openssl rand -hex 16)"
           echo "::stop-commands::$stop"
-          jq -r '[.[] | select(.type == "result")] | last // {} | "Curator result (\(.subtype // "none"), HTTP \(.api_error_status // "-")): \(.result // (.errors // [] | join("; ") | select(. != "")) // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
+          jq -r '[.[] | select(.type == "result")] | last // {} | "Curator result (\(.subtype // "none"), HTTP \(.api_error_status // "-")): \((.result | strings | select(length > 0)) // (.errors // [] | join("; ") | select(. != "")) // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
           echo "::$stop::"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -290,7 +290,7 @@ jobs:
           if [ ! -s "$f" ]; then echo "No execution file; the action failed before Claude ran."; exit 0; fi
           stop="$(openssl rand -hex 16)"
           echo "::stop-commands::$stop"
-          jq -r '[.[] | select(.type == "result")] | last // {} | "Reviewer result (\(.subtype // "none"), HTTP \(.api_error_status // "-")): \(.result // (.errors // [] | join("; ") | select(. != "")) // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
+          jq -r '[.[] | select(.type == "result")] | last // {} | "Reviewer result (\(.subtype // "none"), HTTP \(.api_error_status // "-")): \((.result | strings | select(length > 0)) // (.errors // [] | join("; ") | select(. != "")) // "(no message)" | tostring | .[0:300])"' "$f" || echo "Could not read $f"
           echo "::$stop::"
 
       - name: Save the verdict
