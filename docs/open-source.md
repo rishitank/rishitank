@@ -110,8 +110,10 @@ against the GitHub API on every PR and every week:
 Quotes are matched exactly; one that ends in a number must not run on into a
 longer one (`fixes #59` does not match `fixes #595`).
 
-`watch` asks the weekly scan to report when a release mentions something (for
-example `#2869`), so "merged" can become "shipped in vX" without anyone remembering.
+`watch` asks the weekly scan to report when a release mentions something, so
+"merged" can become "shipped in vX" without anyone remembering. Match what the
+notes actually cite: Redocly's release notes, for example, name the squashed
+commit's short hash (`d6d785f`), not the PR number.
 
 ## Running it by hand
 
