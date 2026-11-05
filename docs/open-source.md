@@ -112,8 +112,8 @@ longer one (`fixes #59` does not match `fixes #595`).
 
 `watch` asks the weekly scan to report when a release mentions something, so
 "merged" can become "shipped in vX" without anyone remembering. Match what the
-notes actually cite: projects that publish with changesets (Redocly's do) name
-the squashed commit's short hash, such as `d6d785f`, not the PR number.
+notes actually cite: Redocly's release notes, for example, name the squashed
+commit's short hash (`d6d785f`), not the PR number.
 
 ## Running it by hand
 
